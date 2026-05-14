@@ -1,0 +1,25 @@
+---
+kolla_selinux_policies_mariadb:
+  mariadb:
+    enabled: "{{ enable_mariadb | default(true) | bool }}"
+    # MariaDB typically runs on the core control plane
+    groups:
+      - "controllers"
+      - "control"
+    description: "Dedicated SELinux domain for MariaDB Galera Cluster"
+    domain: "kolla_mariadb_t"
+    exec_type: "kolla_mariadb_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type node_t;"
+      - "type sysfs_t;"
+      # Requires bind/connect for Galera replication (ports 3306, 4567, 4444, 4568)
+      - "class tcp_socket { name_bind name_connect node_bind };"
+      - "class process { setrlimit };"
+      - "class file { read open getattr };"
+    allow_rules:
+      - "allow kolla_mariadb_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_mariadb_t node_t:tcp_socket node_bind;"
+      - "allow kolla_mariadb_t self:process setrlimit;"
+      - "allow kolla_mariadb_t sysfs_t:file { read open getattr };"

@@ -1,3 +1,0 @@
----
-- name: Deploy valkey
-  import_tasks: deploy.yml

@@ -1,0 +1,163 @@
+---
+Kolla_selinux_policies_prometheus:
+  # Changed key from 'prometheus_server' to 'prometheus' to fix the output filename
+  prometheus:
+    enabled: "{{ enable_prometheus | default(true) | bool }}"
+    # Changed 'controllers' to 'control' to match Kolla's internal inventory mapping
+    groups:
+      - "monitoring"
+      - "controllers"
+      - "control"
+
+    description: "SELinux domain for Prometheus Time-Series Database"
+    domain: "{{ selinux_domain_prefix }}_prometheus_t"
+    exec_type: "{{ selinux_domain_prefix }}_prometheus_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type node_t;"
+      # Requires both bind (listening on 9090) and connect (scraping targets)
+      - "class tcp_socket { name_bind name_connect node_bind };"
+      - "class file { read open getattr };"
+      - "class dir { search };"
+      # - "class process { setrlimit };"
+    allow_rules:
+      # Allow Prometheus to listen for incoming queries (e.g., from Grafana)
+      - "allow {{ selinux_domain_prefix }}_prometheus_t port_t:tcp_socket name_bind;"
+      - "allow {{ selinux_domain_prefix }}_prometheus_t node_t:tcp_socket node_bind;"
+      # Allow Prometheus to initiate outbound connections to scrape endpoints across the cluster
+      - "allow {{ selinux_domain_prefix }}_prometheus_t port_t:tcp_socket name_connect;"
+
+  prometheus_node_exporter:
+    enabled: "{{ (enable_prometheus_node_exporter if enable_prometheus_node_exporter is not none else enable_prometheus) | bool }}"
+    groups:
+      - "seed"
+      - "prometheus-node-exporter"
+    description: "SELinux domain for Prometheus Node Exporter"
+    domain: "{{ selinux_domain_prefix }}_prometheus_node_exporter_t"
+    exec_type: "{{ selinux_domain_prefix }}_prometheus_node_exporter_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type proc_t;"
+      - "type sysfs_t;"
+      - "class tcp_socket { name_bind name_connect };"
+      - "class capability { dac_read_search sys_ptrace sys_admin };"
+      - "class dir { read getattr search };"
+      - "class file { read open getattr };"
+      - "class lnk_file { read getattr };"
+    allow_rules:
+      - "allow {{ selinux_domain_prefix }}_prometheus_node_exporter_t port_t:tcp_socket { name_bind listen accept name_connect };"
+      - "allow {{ selinux_domain_prefix }}_prometheus_node_exporter_t self:capability { dac_read_search sys_ptrace sys_admin };"
+      - "allow {{ selinux_domain_prefix }}_prometheus_node_exporter_t proc_t:dir { read getattr search };"
+      - "allow {{ selinux_domain_prefix }}_prometheus_node_exporter_t proc_t:file { read open getattr };"
+      - "allow {{ selinux_domain_prefix }}_prometheus_node_exporter_t proc_t:lnk_file { read getattr };"
+      - "allow {{ selinux_domain_prefix }}_prometheus_node_exporter_t sysfs_t:dir { read getattr search };"
+      - "allow {{ selinux_domain_prefix }}_prometheus_node_exporter_t sysfs_t:file { read open getattr };"
+      - "allow {{ selinux_domain_prefix }}_prometheus_node_exporter_t sysfs_t:lnk_file { read getattr };"
+    interfaces:
+      - "kernel_read_fs_sysctls({{ selinux_domain_prefix }}_prometheus_node_exporter_t)"
+      - "kernel_read_net_sysctls({{ selinux_domain_prefix }}_prometheus_node_exporter_t)"
+      - "kernel_read_network_state({{ selinux_domain_prefix }}_prometheus_node_exporter_t)"
+      - "kernel_read_software_raid_state({{ selinux_domain_prefix }}_prometheus_node_exporter_t)"
+      - "kernel_read_system_state({{ selinux_domain_prefix }}_prometheus_node_exporter_t)"
+      - "corenet_tcp_bind_generic_node({{ selinux_domain_prefix }}_prometheus_node_exporter_t)"
+      - "corenet_tcp_bind_hplip_port({{ selinux_domain_prefix }}_prometheus_node_exporter_t)"
+      - "dbus_send_system_bus({{ selinux_domain_prefix }}_prometheus_node_exporter_t)"
+      - "dbus_system_bus_client({{ selinux_domain_prefix }}_prometheus_node_exporter_t)"
+      - "dev_read_sysfs({{ selinux_domain_prefix }}_prometheus_node_exporter_t)"
+      - "fs_getattr_rpc_pipefs({{ selinux_domain_prefix }}_prometheus_node_exporter_t)"
+      - "fs_getattr_tmpfs({{ selinux_domain_prefix }}_prometheus_node_exporter_t)"
+      - "fs_getattr_xattr_fs({{ selinux_domain_prefix }}_prometheus_node_exporter_t)"
+      - "init_dbus_chat({{ selinux_domain_prefix }}_prometheus_node_exporter_t)"
+      - "init_read_state({{ selinux_domain_prefix }}_prometheus_node_exporter_t)"
+      - "init_status({{ selinux_domain_prefix }}_prometheus_node_exporter_t)"
+      - "rpc_search_nfs_state_data({{ selinux_domain_prefix }}_prometheus_node_exporter_t)"
+      - "systemd_dbus_chat_logind({{ selinux_domain_prefix }}_prometheus_node_exporter_t)"
+      - "sysnet_read_config({{ selinux_domain_prefix }}_prometheus_node_exporter_t)"
+      - "userdom_search_user_tmp_dirs({{ selinux_domain_prefix }}_prometheus_node_exporter_t)"
+
+  prometheus_alertmanager:
+    enabled: "{{ enable_prometheus_alertmanager | default(true) | bool }}"
+    # Changed 'controllers' to 'control'
+    groups:
+      - "monitoring"
+    description: "SELinux domain for Prometheus Alertmanager"
+    domain: "{{ selinux_domain_prefix }}_alertmanager_t"
+    exec_type: "{{ selinux_domain_prefix }}_alertmanager_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "class tcp_socket { name_bind name_connect };"
+    allow_rules:
+      - "allow {{ selinux_domain_prefix }}_alertmanager_t port_t:tcp_socket { name_bind name_connect };"
+
+  # prometheus_cadvisor
+  # is part of the "telemetry" stack, but adding it here.
+  prometheus_cadvisor:
+    enabled: "{{ enable_cadvisor | default(true) | bool }}"
+    # cAdvisor must run on every node running containers across the se-- cluster
+    groups:
+      - "controllers"
+      - "control"
+    description: "SELinux domain for Prometheus cAdvisor Telemetry Agent"
+    domain: "{{ selinux_domain_prefix }}_cadvisor_t"
+    exec_type: "{{ selinux_domain_prefix }}_cadvisor_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type proc_t;"
+      - "type sysfs_t;"
+      - "type var_run_t;"
+      - "type container_var_lib_t;"  # Covers /var/lib/docker or /var/lib/containers
+      - "class tcp_socket { name_bind name_connect };"
+      # Highly privileged capabilities required to inspect neighbor container resource usage
+      - "class capability { dac_read_search sys_ptrace sys_admin };"
+      - "class dir { read getattr search };"
+      - "class file { read open getattr };"
+      - "class lnk_file { read getattr };"
+      - "class sock_file { write };"
+    allow_rules:
+      # Bind to the cAdvisor port for Prometheus scraping
+      - "allow {{ selinux_domain_prefix }}_cadvisor_t port_t:tcp_socket { name_bind name_connect };"
+
+      # Core privileges to read host OS process and cgroup data
+      - "allow {{ selinux_domain_prefix }}_cadvisor_t self:capability { dac_read_search sys_ptrace sys_admin };"
+
+      # Deep read access to /proc and /sys for hardware/kernel metrics
+      - "allow {{ selinux_domain_prefix }}_cadvisor_t proc_t:dir { read getattr search };"
+      - "allow {{ selinux_domain_prefix }}_cadvisor_t proc_t:file { read open getattr };"
+      - "allow {{ selinux_domain_prefix }}_cadvisor_t proc_t:lnk_file { read getattr };"
+      - "allow {{ selinux_domain_prefix }}_cadvisor_t sysfs_t:dir { read getattr search };"
+      - "allow {{ selinux_domain_prefix }}_cadvisor_t sysfs_t:file { read open getattr };"
+      - "allow {{ selinux_domain_prefix }}_cadvisor_t sysfs_t:lnk_file { read getattr };"
+
+      # Access to container engine sockets and storage backends
+      - "allow {{ selinux_domain_prefix }}_cadvisor_t var_run_t:dir search;"
+      - "allow {{ selinux_domain_prefix }}_cadvisor_t var_run_t:sock_file write;"
+      - "allow {{ selinux_domain_prefix }}_cadvisor_t container_var_lib_t:dir { read getattr search };"
+
+  prometheus_libvirt_exporter:
+    enabled: "{{ enable_prometheus_libvirt_exporter | default(true) | bool }}"
+    # Runs exclusively on nodes acting as hypervisors (compute plane)
+    groups:
+      - "compute"
+      - "controllers"
+      - "control"
+    description: "SELinux domain for Prometheus Libvirt Exporter"
+    domain: "kolla_prometheus_libvirt_t"
+    exec_type: "kolla_prometheus_libvirt_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      # Standard SELinux type for libvirt runtime sockets
+      - "type virt_var_run_t;"
+      - "class tcp_socket { name_bind name_connect };"
+      - "class dir { getattr search };"
+      - "class sock_file { getattr write };"
+    allow_rules:
+      # Bind to the exporter port for Prometheus server scraping
+      - "allow kolla_prometheus_libvirt_t port_t:tcp_socket { name_bind name_connect };"
+      # Traverse the /var/run/libvirt directory and write to the libvirt socket
+      - "allow kolla_prometheus_libvirt_t virt_var_run_t:dir { getattr search };"
+      - "allow kolla_prometheus_libvirt_t virt_var_run_t:sock_file { getattr write };"

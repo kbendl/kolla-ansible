@@ -1,3 +1,0 @@
----
-- name: Check valkey containers
-  import_tasks: check-containers.yml

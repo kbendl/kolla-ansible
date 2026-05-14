@@ -1,0 +1,25 @@
+---
+kolla_selinux_policies_glance:
+  glance_api:
+    enabled: "{{ enable_glance | default(true) | bool }}"
+    groups:
+      - "controllers"
+      - "control"
+    description: "Dedicated SELinux domain for Glance API"
+    domain: "kolla_glance_api_t"
+    exec_type: "kolla_glance_api_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      # Adjust this type based on your storage backend (e.g., nfs_t, cephfs_t, or container_file_t)
+      - "type nfs_t;"
+      - "type cephfs_t;"
+      - "class tcp_socket { name_bind name_connect };"
+      - "class dir { read write add_name remove_name search };"
+      - "class file { read write create getattr unlink open };"
+    allow_rules:
+      - "allow kolla_glance_api_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_glance_api_t nfs_t:dir { read write add_name remove_name search };"
+      - "allow kolla_glance_api_t nfs_t:file { read write create getattr unlink open };"
+      - "allow kolla_glance_api_t cephfs_t:dir { read write add_name remove_name search };"
+      - "allow kolla_glance_api_t cephfs_t:file { read write create getattr unlink open };"

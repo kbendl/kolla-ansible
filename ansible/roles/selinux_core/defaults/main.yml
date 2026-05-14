@@ -1,0 +1,5 @@
+---
+# defaults file for selinux_core
+
+# Directory to build and store custom profiles on target nodes
+kolla_selinux_profile_build_dir: "/etc/selinux/kolla_custom_profiles"

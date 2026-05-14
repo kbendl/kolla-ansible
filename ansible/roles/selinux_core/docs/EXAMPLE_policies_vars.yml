@@ -1,0 +1,118 @@
+---
+# ==============================================================================
+# Example selinux policies config variable for prometheus
+# Component: <description of the service>
+# ==============================================================================
+
+# `kolla_` prefix to policy domains and rules
+# This will greatly simplify troubleshooting
+# Please, please, please ALWAYS prefix your rules with either
+# a site-specific identifier via the `selinux_domain_prefix` variable
+# or just aimply use the **kolla** default.
+#
+# The default is "kolla" but you have the option to use your own.
+# for example, you coule create an allow rule entry such as this:
+#
+#    - "allow kolla_node_exporter_t sysfs_t:lnk_file { read getattr };"
+#  or...
+#    - "allow {{ selinux_domain_prefix }}_node_exporter_t sysfs_t:lnk_file { read getattr };"
+#  Pick which ever one is most readable --likely just `kolla`.
+#
+# Caveat: Changing the prefix may require updating all of the
+#         related SELinux policies
+#         AND future reporting
+#         AND container labes when those are deployed, e.g.,
+#             --security-opt label=type:kolla_node_exporter_t
+
+kolla_prometheus_selinux_policies_EXAMPLE:  # NOTE: remove `_EXAMPLE` for your work.
+  # ----------------------------------------
+  # Core Prometheus Server
+  # ----------------------------------------
+  prometheus_server_EXAMPLE:
+    enabled: "{{ enable_prometheus | default(true) | bool }}"
+    groups:
+      - "monitoring"
+      - "controllers"
+    description: "SELinux domain for the Prometheus server"
+    domain: "kolla_prometheus_t"
+    exec_type: "kolla_prometheus_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "class tcp_socket { name_bind name_connect };"
+      - "class process { setrlimit };"
+    allow_rules:
+      # Needs name_connect to aggressively scrape metrics from every node in the cluster
+      - "allow kolla_prometheus_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_prometheus_t self:process setrlimit;"
+
+  # ----------------------------------------
+  # Prometheus Alertmanager
+  # ----------------------------------------
+  prometheus_alertmanager_EXAMPLE:
+    enabled: "{{ enable_prometheus_alertmanager | default(true) | bool }}"
+    groups:
+      - "monitoring"
+      - "controllers"
+    description: "SELinux domain for Prometheus Alertmanager"
+    domain: "kolla_alertmanager_t"
+    exec_type: "kolla_alertmanager_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "class tcp_socket { name_bind name_connect };"
+    allow_rules:
+      # Needs name_connect to push alerts out to external webhooks, SMTP, Slack, etc.
+      - "allow kolla_alertmanager_t port_t:tcp_socket { name_bind name_connect };"
+
+  # ----------------------------------------------------
+  # Prometheus Node Exporter (Probably runs everywhere)
+  # ----------------------------------------------------
+  prometheus_node_exporter_EXAMPLE:
+    enabled: "{{ (enable_prometheus_node_exporter if enable_prometheus_node_exporter is not none else enable_prometheus) | bool }}"
+    groups:
+      - "seed"
+      - "prometheus-node-exporter"
+    description: "SELinux domain for Prometheus Node Exporter"
+    domain: "{{ selinux_domain_prefix }}_prometheus_node_exporter_t"
+    exec_type: "{{ selinux_domain_prefix }}_prometheus_node_exporter_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type proc_t;"
+      - "type sysfs_t;"
+      - "class tcp_socket { name_bind name_connect };"
+      - "class capability { dac_read_search sys_ptrace sys_admin };"
+      - "class dir { read getattr search };"
+      - "class file { read open getattr };"
+      - "class lnk_file { read getattr };"
+    allow_rules:
+      - "allow {{ selinux_domain_prefix }}_prometheus_node_exporter_t port_t:tcp_socket { name_bind listen accept name_connect };"
+      - "allow {{ selinux_domain_prefix }}_prometheus_node_exporter_t self:capability { dac_read_search sys_ptrace sys_admin };"
+      - "allow {{ selinux_domain_prefix }}_prometheus_node_exporter_t proc_t:dir { read getattr search };"
+      - "allow {{ selinux_domain_prefix }}_prometheus_node_exporter_t proc_t:file { read open getattr };"
+      - "allow {{ selinux_domain_prefix }}_prometheus_node_exporter_t proc_t:lnk_file { read getattr };"
+      - "allow {{ selinux_domain_prefix }}_prometheus_node_exporter_t sysfs_t:dir { read getattr search };"
+      - "allow {{ selinux_domain_prefix }}_prometheus_node_exporter_t sysfs_t:file { read open getattr };"
+      - "allow {{ selinux_domain_prefix }}_prometheus_node_exporter_t sysfs_t:lnk_file { read getattr };"
+    interfaces:
+      - "kernel_read_fs_sysctls({{ selinux_domain_prefix }}_prometheus_node_exporter_t)"
+      - "kernel_read_net_sysctls({{ selinux_domain_prefix }}_prometheus_node_exporter_t)"
+      - "kernel_read_network_state({{ selinux_domain_prefix }}_prometheus_node_exporter_t)"
+      - "kernel_read_software_raid_state({{ selinux_domain_prefix }}_prometheus_node_exporter_t)"
+      - "kernel_read_system_state({{ selinux_domain_prefix }}_prometheus_node_exporter_t)"
+      - "corenet_tcp_bind_generic_node({{ selinux_domain_prefix }}_prometheus_node_exporter_t)"
+      - "corenet_tcp_bind_hplip_port({{ selinux_domain_prefix }}_prometheus_node_exporter_t)"
+      - "dbus_send_system_bus({{ selinux_domain_prefix }}_prometheus_node_exporter_t)"
+      - "dbus_system_bus_client({{ selinux_domain_prefix }}_prometheus_node_exporter_t)"
+      - "dev_read_sysfs({{ selinux_domain_prefix }}_prometheus_node_exporter_t)"
+      - "fs_getattr_rpc_pipefs({{ selinux_domain_prefix }}_prometheus_node_exporter_t)"
+      - "fs_getattr_tmpfs({{ selinux_domain_prefix }}_prometheus_node_exporter_t)"
+      - "fs_getattr_xattr_fs({{ selinux_domain_prefix }}_prometheus_node_exporter_t)"
+      - "init_dbus_chat({{ selinux_domain_prefix }}_prometheus_node_exporter_t)"
+      - "init_read_state({{ selinux_domain_prefix }}_prometheus_node_exporter_t)"
+      - "init_status({{ selinux_domain_prefix }}_prometheus_node_exporter_t)"
+      - "rpc_search_nfs_state_data({{ selinux_domain_prefix }}_prometheus_node_exporter_t)"
+      - "systemd_dbus_chat_logind({{ selinux_domain_prefix }}_prometheus_node_exporter_t)"
+      - "sysnet_read_config({{ selinux_domain_prefix }}_prometheus_node_exporter_t)"
+      - "userdom_search_user_tmp_dirs({{ selinux_domain_prefix }}_prometheus_node_exporter_t)"

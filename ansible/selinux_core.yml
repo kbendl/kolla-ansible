@@ -1,0 +1,21 @@
+---
+- name: Dynamic SELinux Policy Loader
+  hosts: all
+  gather_facts: true
+  vars:
+    # Adjust this path if your playbook is not in the root of the kolla-ansible repo
+    selinux_domain_prefix: "kolla"
+    kolla_selinux_profile_build_dir: "/etc/selinux/kolla_custom_profiles"
+    ansible_python_interpreter: auto_silent
+
+  tasks:
+    - name: Configure SELinux policy for enabled services
+      ansible.builtin.include_role:
+        name: selinux_core
+      tags: selinux_core
+      when:
+        - enable_selinux_core | default(true) | bool
+        - ansible_os_family | default('') == 'RedHat'
+        - ansible_distribution_major_version | default('0') | int >= 9
+# Example usage to update selinux roles on only two named services:
+#     ansible-playbook -i inventory selinux_core.yml -e '{"limit_selinux_services": ["prometheus", "grafana"]}'

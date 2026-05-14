@@ -1,0 +1,17 @@
+---
+kolla_selinux_policies_memcached:
+  memcached:
+    enabled: "{{ enable_memcached | default(true) | bool }}"
+    # Caching is centralized on the core control plane
+    groups:
+      - "controllers"
+      - "control"
+    description: "Dedicated SELinux domain for Memcached"
+    domain: "kolla_memcached_t"
+    exec_type: "kolla_memcached_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "class tcp_socket { name_bind name_connect };"
+    allow_rules:
+      - "allow kolla_memcached_t port_t:tcp_socket { name_bind name_connect };"

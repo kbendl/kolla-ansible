@@ -101,3 +101,8 @@ grafana_remove_old_volume: false
 # Prometheus
 ############
 grafana_prometheus_url: "{{ internal_protocol }}://{{ kolla_internal_fqdn | put_address_in_context('url') }}:{{ prometheus_port }}"
+
+###################
+# Copy certificates
+###################
+glance_copy_certs: "{{ kolla_copy_ca_into_containers | bool or glance_enable_tls_backend | bool or glance_database_enable_tls_internal | bool }}"

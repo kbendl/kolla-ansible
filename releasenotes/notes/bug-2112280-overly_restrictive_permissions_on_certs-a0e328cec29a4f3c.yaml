@@ -1,6 +1,0 @@
----
-fixes:
-  - |
-    Fixes overly restrictive permissions on certificates in
-    ``/var/lib/kolla/share/ca-certificates`` path in containers that
-    require access to these certificates.

@@ -1,0 +1,81 @@
+---
+
+kolla_selinux_policies_cinder:
+  # ----------------------------------------
+  # Cinder Control Plane Services
+  # ----------------------------------------
+
+  cinder_api:
+    enabled: "{{ enable_cinder | default(true) | bool }}"
+    # group: "{{ cinder_volume_group | default('cinder-volume') }}"
+    groups:
+      - "controllers"
+      - "control"
+    description: "Dedicated SELinux domain for Cinder API"
+    domain: "kolla_cinder_api_t"
+    exec_type: "kolla_cinder_api_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "class tcp_socket { name_bind name_connect };"
+    allow_rules:
+      - "allow kolla_cinder_api_t port_t:tcp_socket { name_bind name_connect };"
+
+  cinder_scheduler:
+    enabled: "{{ enable_cinder | default(true) | bool }}"
+    groups:
+      - "controllers"
+      - "control"
+    description: "Dedicated SELinux domain for Cinder Scheduler"
+    domain: "kolla_cinder_scheduler_t"
+    exec_type: "kolla_cinder_scheduler_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "class tcp_socket { name_connect };"
+    allow_rules:
+      - "allow kolla_cinder_scheduler_t port_t:tcp_socket name_connect;"
+
+  # ----------------------------------------
+  # Cinder Storage Node Services
+  # ----------------------------------------
+
+  cinder_volume:
+    enabled: "{{ enable_cinder | default(true) | bool }}"
+    groups:
+      - "storage"
+      - "control"
+      - "controllers"
+    description: "Dedicated SELinux domain for Cinder Volume"
+    domain: "kolla_cinder_volume_t"
+    exec_type: "kolla_cinder_volume_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type fixed_disk_device_t;"
+      - "type lvm_control_t;"
+      - "class capability { sys_admin mknod };"
+      - "class blk_file { read write getattr open ioctl };"
+      - "class chr_file { read write getattr open ioctl };"
+    allow_rules:
+      - "allow kolla_cinder_volume_t self:capability { sys_admin mknod };"
+      - "allow kolla_cinder_volume_t fixed_disk_device_t:blk_file { read write getattr open ioctl };"
+      - "allow kolla_cinder_volume_t lvm_control_t:chr_file { read write getattr open ioctl };"
+
+  cinder_backup:
+    enabled: "{{ enable_cinder_backup | default(false) | bool }}"
+    # Backup services often run on storage nodes, but can also run on dedicated backup nodes
+    groups:
+      - "storage"
+
+    description: "Dedicated SELinux domain for Cinder Backup"
+    domain: "kolla_cinder_backup_t"
+    exec_type: "kolla_cinder_backup_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type nfs_t;"
+      - "class dir { read write add_name remove_name search };"
+      - "class file { read write create getattr unlink open };"
+    allow_rules:
+      # Assuming an NFS backend is used for backups. Adjust if using Ceph/Swift.
+      - "allow kolla_cinder_backup_t nfs_t:dir { read write add_name remove_name search };"
+      - "allow kolla_cinder_backup_t nfs_t:file { read write create getattr unlink open };"

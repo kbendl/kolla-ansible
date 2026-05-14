@@ -22,11 +22,8 @@
   become: True
   when: not cephadm_use_package_from_distribution
 
-# NOTE(mnasiadka): cephadm bootstrap failing on jinja2 missing
-- name: Install cephadm and jinja2
+- name: Install cephadm
   dnf:
-    name:
-      - cephadm
-      - python3-jinja2
+    name: "cephadm"
     install_weak_deps: False
   become: True

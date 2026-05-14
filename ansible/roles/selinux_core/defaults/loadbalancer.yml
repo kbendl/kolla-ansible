@@ -1,0 +1,38 @@
+---
+kolla_selinux_policies_loadbalancer:
+  haproxy:
+    enabled: "{{ enable_haproxy | default(true) | bool }}"
+    groups:
+      - "network"
+      - "control"
+      - "controllers"
+    description: "SELinux domain for HAProxy"
+    domain: "kolla_haproxy_t"
+    exec_type: "kolla_haproxy_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type node_t;"
+      - "class capability { net_bind_service setgid setuid sys_chroot net_admin };"
+      - "class tcp_socket { name_bind name_connect node_bind };"
+    allow_rules:
+      - "allow kolla_haproxy_t self:capability { net_bind_service setgid setuid sys_chroot net_admin };"
+      - "allow kolla_haproxy_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_haproxy_t node_t:tcp_socket node_bind;"
+
+  keepalived:
+    enabled: "{{ enable_keepalived | default(true) | bool }}"
+    groups:
+      - "network"
+      - "control"
+      - "controllers"
+    description: "SELinux domain for Keepalived VIP Management"
+    domain: "kolla_keepalived_t"
+    exec_type: "kolla_keepalived_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "class capability { net_admin net_raw net_bind_service };"
+      - "class rawip_socket { create bind setopt write read };"
+    allow_rules:
+      - "allow kolla_keepalived_t self:capability { net_admin net_raw net_bind_service };"
+      - "allow kolla_keepalived_t self:rawip_socket { create bind setopt write read };"

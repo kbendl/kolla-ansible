@@ -519,14 +519,12 @@ class MigrateContainerEngine(KollaAnsibleMixin, Command):
         self.run_playbooks(parsed_args, playbooks)
 
 
-class MigrateValkey(KollaAnsibleMixin, Command):
-    """Migrate from Redis to Valkey"""
+class SetupSelinuxCore(KollaAnsibleMixin, Command):
+    """Configure per-container SELinux policies."""
 
     def take_action(self, parsed_args):
-        self.app.LOG.info(
-            "Migrate from Redis to Valkey"
-        )
+        self.app.LOG.info("Setting up SELinux policies")
 
-        playbooks = _choose_playbooks(parsed_args, "migrate-valkey")
+        playbooks = _choose_playbooks(parsed_args, "selinux_core")
 
         self.run_playbooks(parsed_args, playbooks)

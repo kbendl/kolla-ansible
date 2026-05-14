@@ -275,13 +275,19 @@ class DockerWorker(ContainerWorker):
         return ulimits_opt
 
     def build_host_config(self, binds):
+        security_opt = self.params.get('security_opt')   # always assign first
+        if not security_opt:                              # now safe to check
+            name = self.params.get('name')
+            if name:
+                security_opt = ['label=type:kolla_{}_t'.format(name)]
+
         options = {
             'network_mode': 'host',
             'ipc_mode': self.params.get('ipc_mode'),
             'cap_add': self.params.get('cap_add'),
-            'security_opt': self.params.get('security_opt'),
             'pid_mode': self.params.get('pid_mode'),
             'privileged': self.params.get('privileged'),
+            'security_opt': security_opt,
             'tmpfs': self.generate_tmpfs(),
             'volumes_from': self.params.get('volumes_from')
         }

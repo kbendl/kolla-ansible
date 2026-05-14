@@ -33,7 +33,7 @@ prometheus_services:
     group: prometheus-node-exporter
     enabled: "{{ enable_prometheus_node_exporter | bool }}"
     image: "{{ prometheus_node_exporter_image_full }}"
-    pid_mode: "host"
+    command: "--path.rootfs=/host {{ prometheus_node_exporter_cmdline_extras }}"
     volumes: "{{ prometheus_node_exporter_default_volumes + prometheus_node_exporter_extra_volumes }}"
     dimensions: "{{ prometheus_node_exporter_dimensions }}"
   prometheus-mysqld-exporter:
@@ -341,8 +341,6 @@ prometheus_blackbox_exporter_endpoints_default:
     enabled: "{{ enable_rabbitmq | bool }}"
   - endpoints: "{% set redis_endpoints = [] %}{% for host in groups.get('redis', []) %}{{ redis_endpoints.append('redis_' + host + ':tcp_connect:' + ('api' | kolla_address(host) | put_address_in_context('url')) + ':' + hostvars[host]['redis_port']) }}{% endfor %}{{ redis_endpoints }}"
     enabled: "{{ enable_redis | bool }}"
-  - endpoints: "{% set valkey_endpoints = [] %}{% for host in groups.get('valkey', []) %}{{ valkey_endpoints.append('valkey_' + host + ':tcp_connect:' + ('api' | kolla_address(host) | put_address_in_context('url')) + ':' + hostvars[host]['valkey_server_port']) }}{% endfor %}{{ valkey_endpoints }}"
-    enabled: "{{ enable_valkey | bool }}"
 
 prometheus_blackbox_exporter_endpoints_custom: []
 

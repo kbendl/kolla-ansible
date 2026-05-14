@@ -1,0 +1,45 @@
+---
+kolla_selinux_policies_openvswitch:
+  openvswitch_vswitchd:
+    enabled: "{{ enable_openvswitch | default(true) | bool }}"
+    groups:
+      - "network"
+      - "compute"
+    description: "SELinux domain for Open vSwitch Forwarding Daemon"
+    domain: "kolla_openvswitch_vswitchd_t"
+    exec_type: "kolla_openvswitch_vswitchd_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type tun_tap_device_t;"
+      - "type var_run_t;"
+      # Requires extensive privileges to manipulate host network namespaces and lock memory
+      - "class capability { net_admin sys_admin net_raw dac_override ipc_lock };"
+      - "class chr_file { read write open ioctl getattr };"
+      - "class netif { ingress egress };"
+      - "class sock_file { create setattr write unlink };"
+    allow_rules:
+      - "allow kolla_openvswitch_vswitchd_t self:capability { net_admin sys_admin net_raw dac_override ipc_lock };"
+      - "allow kolla_openvswitch_vswitchd_t tun_tap_device_t:chr_file { read write open ioctl getattr };"
+      - "allow kolla_openvswitch_vswitchd_t self:netif { ingress egress };"
+      # Allows vswitchd to create the local unix sockets that ovn-controller will connect to
+      - "allow kolla_openvswitch_vswitchd_t var_run_t:sock_file { create setattr write unlink };"
+
+  openvswitch_db:
+    enabled: "{{ enable_openvswitch | default(true) | bool }}"
+    groups:
+      - "network"
+      - "compute"
+    description: "SELinux domain for Open vSwitch Database Server"
+    domain: "kolla_openvswitch_db_t"
+    exec_type: "kolla_openvswitch_db_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type var_run_t;"
+      - "type port_t;"
+      - "class capability { dac_override net_bind_service };"
+      - "class tcp_socket { name_bind name_connect };"
+      - "class sock_file { create setattr write unlink };"
+    allow_rules:
+      - "allow kolla_openvswitch_db_t self:capability { dac_override net_bind_service };"
+      - "allow kolla_openvswitch_db_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_openvswitch_db_t var_run_t:sock_file { create setattr write unlink };"
