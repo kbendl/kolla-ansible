@@ -140,6 +140,15 @@ class PodmanWorker(ContainerWorker):
             if key in CONTAINER_PARAMS and value is not None:
                 args[key] = value
 
+        # ensure security_opt is set by default
+        security_opt = self.params.get('security_opt')
+        if not security_opt:
+            name = self.params.get('name')
+            if name:
+                security_opt = ['label=type:kolla_{}_t'.format(name)]
+        if security_opt:
+            args['security_opt'] = security_opt
+
         args.pop('restart_policy', None)    # handled by systemd
 
         return args

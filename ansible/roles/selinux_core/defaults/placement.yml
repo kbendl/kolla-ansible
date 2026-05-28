@@ -1,0 +1,17 @@
+---
+kolla_selinux_policies_placement:
+  placement_api:
+    enabled: "{{ enable_placement | default(true) | bool }}"
+    groups:
+      - "controllers"
+      - "control"
+    description: "SELinux domain for Placement API"
+    domain: "kolla_placement_api_t"
+    exec_type: "kolla_placement_api_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "class tcp_socket { name_bind name_connect };"
+    allow_rules:
+      # Placement needs to bind to its assigned port and connect out to MariaDB and Keystone
+      - "allow kolla_placement_api_t port_t:tcp_socket { name_bind name_connect };"

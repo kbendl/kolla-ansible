@@ -1,0 +1,35 @@
+---
+
+kolla_selinux_policies_keystone:
+  keystone:
+    enabled: "{{ enable_keystone | default(true) | bool }}"
+    groups:
+      - "control"
+      - "controllers"
+    description: "SELinux domain for Keystone API"
+    domain: "kolla_keystone_t"
+    exec_type: "kolla_keystone_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "class tcp_socket { name_bind name_connect };"
+      - "class dir { read search getattr };"
+      - "class file { read open getattr };"
+    allow_rules:
+      - "allow kolla_keystone_t port_t:tcp_socket { name_bind name_connect };"
+
+  keystone_fernet:
+    enabled: "{{ enable_keystone | default(true) | bool }}"
+    groups:
+      - "control"
+      - "controllers"
+    description: "SELinux domain for Keystone Fernet Key rotation"
+    domain: "kolla_keystone_fernet_t"
+    exec_type: "kolla_keystone_fernet_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "class capability { chown dac_override fowner fsetid };"
+      - "class dir { read write add_name remove_name search };"
+      - "class file { read write create getattr unlink open setattr };"
+    allow_rules:
+      - "allow kolla_keystone_fernet_t self:capability { chown dac_override fowner fsetid };"

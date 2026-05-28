@@ -1,0 +1,23 @@
+---
+kolla_selinux_policies_openbao:
+  openbao:
+    # Adding a fallback to enable_vault in case Kolla is still referencing the legacy variable
+    enabled: "{{ enable_openbao | default(enable_vault) | default(false) | bool }}"
+    groups:
+      - "seed"
+      - "control"
+      - "controllers"
+    description: "SELinux domain for OpenBao Secrets Manager"
+    domain: "kolla_openbao_t"
+    exec_type: "kolla_openbao_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "class capability { ipc_lock };"
+      - "class tcp_socket { name_bind name_connect };"
+      - "class process { setrlimit };"
+    allow_rules:
+      # ipc_lock is mandatory to prevent secrets from writing to swap space
+      - "allow kolla_openbao_t self:capability ipc_lock;"
+      - "allow kolla_openbao_t self:process setrlimit;"
+      - "allow kolla_openbao_t port_t:tcp_socket { name_bind name_connect };"

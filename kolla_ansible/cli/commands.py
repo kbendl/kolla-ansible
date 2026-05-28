@@ -551,3 +551,14 @@ class MigrateContainerEngine(KollaAnsibleMixin, Command):
         playbooks = _choose_playbooks(parsed_args, "migrate-container-engine")
 
         self.run_playbooks(parsed_args, playbooks, extra_vars=extra_vars)
+
+
+class SetupSelinuxCore(KollaAnsibleMixin, Command):
+    """Configure per-container SELinux policies."""
+
+    def take_action(self, parsed_args):
+        self.app.LOG.info("Setting up per-container SELinux policies")
+
+        playbooks = _choose_playbooks(parsed_args, "selinux_core")
+
+        self.run_playbooks(parsed_args, playbooks)

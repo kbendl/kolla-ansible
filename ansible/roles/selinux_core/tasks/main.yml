@@ -1,0 +1,71 @@
+---
+
+- name: Discover available SELinux service policy files
+  ansible.builtin.set_fact:
+    _selinux_available_services: "{{ query('fileglob', role_path ~ '/defaults/*.yml')
+      | map('basename')
+      | map('splitext')
+      | map('first')
+      | reject('equalto', 'main')
+      | list }}"
+
+- name: Ensure SELinux python dependencies are installed
+  become: true
+  ansible.builtin.dnf:
+    name:
+      - policycoreutils-python-utils
+      - checkpolicy
+      - setroubleshoot-server
+      - setools-console
+      - selinux-policy-devel
+    state: present
+
+- name: Enforce SELinux State
+  # permissive while testing
+  become: true
+  ansible.posix.selinux:
+    policy: targeted
+    state: permissive
+
+- name: Ensure Kolla SELinux profile build directory exists
+  become: true
+  ansible.builtin.file:
+    path: "{{ kolla_selinux_profile_build_dir }}"
+    state: directory
+    mode: '0750'
+    owner: root
+    group: root
+
+- name: Determine the active SELinux services to process
+  ansible.builtin.set_fact:
+    active_selinux_services: "{{ limit_selinux_services | intersect(_selinux_available_services)
+      if limit_selinux_services is defined
+      else _selinux_available_services }}"
+
+- name: Ingest centralized SELinux variables for active services
+  ansible.builtin.include_vars:
+    file: "{{ role_path }}/defaults/{{ item }}.yml"
+  loop: "{{ active_selinux_services }}"
+  when:
+    - "(role_path ~ '/defaults/' ~ item ~ '.yml') is file"
+    - "vars['kolla_selinux_policies_' ~ item] is not defined"
+
+- name: Give priority to decentralized SELinux variables
+  ansible.builtin.include_vars:
+    file: "{{ role_path | dirname }}/{{ item }}/defaults/selinux.yml"
+  loop: "{{ active_selinux_services }}"
+  when:
+    - "(role_path | dirname ~ '/' ~ item ~ '/defaults/selinux.yml') is file"
+    - "vars['kolla_selinux_policies_' ~ item] is not defined"
+
+- name: Show the active_selinux_services
+  debug:
+    msg: "{{ active_selinux_services }}"
+
+- name: Loop the service_list
+  ansible.builtin.include_tasks: compile_service.yml
+  loop: "{{ active_selinux_services }}"
+  loop_control:
+    loop_var: current_selinux_service
+  when:
+    - vars['kolla_selinux_policies_' ~ current_selinux_service] is defined

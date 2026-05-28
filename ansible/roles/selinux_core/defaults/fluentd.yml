@@ -1,0 +1,27 @@
+---
+kolla_selinux_policies_fluentd:
+  fluentd:
+    enabled: "{{ enable_fluentd | default(true) | bool }}"
+    groups:
+      - "container-engine"
+      - "controllers"
+      - "control"
+      - "compute"
+    description: "SELinux domain for Fluentd Log Shipper"
+    domain: "kolla_fluentd_t"
+    exec_type: "kolla_fluentd_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type var_log_t;"
+      - "type auditd_log_t;"
+      - "class tcp_socket { name_bind name_connect };"
+      - "class dir { read search getattr };"
+      - "class file { read open getattr };"
+    allow_rules:
+      - "allow kolla_fluentd_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_fluentd_t var_log_t:dir { read search getattr };"
+      - "allow kolla_fluentd_t var_log_t:file { read open getattr };"
+      # Explicit access to the host audit logs for OpenSearch centralization
+      - "allow kolla_fluentd_t auditd_log_t:dir { read search getattr };"
+      - "allow kolla_fluentd_t auditd_log_t:file { read open getattr };"

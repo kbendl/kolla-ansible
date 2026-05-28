@@ -278,6 +278,8 @@ class ContainerWorker(ABC):
             current_sec_opt = None
         except TypeError:
             current_sec_opt = None
+        except AttributeError:
+            current_sec_opt = None
 
         if not current_sec_opt:
             current_sec_opt = list()

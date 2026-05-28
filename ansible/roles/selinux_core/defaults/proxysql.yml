@@ -1,0 +1,21 @@
+---
+kolla_selinux_policies_proxysql:
+  proxysql:
+    enabled: "{{ enable_proxysql | default(false) | bool }}"
+    groups:
+      - "control"
+      - "controllers"
+    description: "SELinux domain for ProxySQL Database Router"
+    domain: "kolla_proxysql_t"
+    exec_type: "kolla_proxysql_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "class capability { setuid setgid sys_resource };"
+      - "class tcp_socket { name_bind name_connect };"
+      - "class process { setrlimit };"
+    allow_rules:
+      - "allow kolla_proxysql_t self:capability { setuid setgid sys_resource };"
+      # Required to increase ulimits for massive connection pooling
+      - "allow kolla_proxysql_t self:process setrlimit;"
+      - "allow kolla_proxysql_t port_t:tcp_socket { name_bind name_connect };"

@@ -64,6 +64,7 @@
         - enable_prometheus_{{ enable_prometheus | bool }}
         - enable_rabbitmq_{{ enable_rabbitmq | bool }}
         - enable_valkey_{{ enable_valkey | bool }}
+        - enable_selinux_core_{{ enable_selinux_core | bool }}
         - enable_skyline_{{ enable_skyline | bool }}
         - enable_tacker_{{ enable_tacker | bool }}
         - enable_trove_{{ enable_trove | bool }}
@@ -80,6 +81,9 @@
        default(100) }}
   roles:
     - role: prechecks
+
+- name: Apply role selinux_core
+  ansible.builtin.import_playbook: selinux_core.yml
 
 - name: Apply role logs
   gather_facts: false
