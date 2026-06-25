@@ -192,3 +192,8 @@ opensearch_dashboards_extra_volumes: "{{ default_extra_volumes }}"
 # Copy certificates
 ###################
 opensearch_copy_certs: "{{ kolla_copy_ca_into_containers | bool }}"
+
+####################
+# Enable SELinux
+####################
+opensearch_selinux_enable: "{{ kolla_opensearch_selinux_enable | default(true) | bool }}"

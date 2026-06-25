@@ -1,0 +1,74 @@
+---
+# ----------------------------------------
+# OVN Central Control Plane
+# ----------------------------------------
+kolla_selinux_policies_ovn:
+  ovn_northd:
+    enabled: "{{ enable_ovn | default(true) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for OVN Northbound Daemon"
+    domain: "kolla_ovn_northd_t"
+    exec_type: "kolla_ovn_northd_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "class tcp_socket { name_bind name_connect };"
+    allow_rules:
+      - "allow kolla_ovn_northd_t port_t:tcp_socket { name_bind name_connect };"
+
+  ovn_nb_db:
+    enabled: "{{ enable_ovn | default(true) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for OVN Northbound Database (OVSDB-Server)"
+    domain: "kolla_ovn_nb_db_t"
+    exec_type: "kolla_ovn_nb_db_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type node_t;"
+      - "class tcp_socket { name_bind name_connect node_bind };"
+    allow_rules:
+      - "allow kolla_ovn_nb_db_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_ovn_nb_db_t node_t:tcp_socket node_bind;"
+
+  ovn_sb_db:
+    enabled: "{{ enable_ovn | default(true) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for OVN Southbound Database (OVSDB-Server)"
+    domain: "kolla_ovn_sb_db_t"
+    exec_type: "kolla_ovn_sb_db_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type node_t;"
+      - "class tcp_socket { name_bind name_connect node_bind };"
+    allow_rules:
+      - "allow kolla_ovn_sb_db_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_ovn_sb_db_t node_t:tcp_socket node_bind;"
+
+  # ----------------------------------------
+  # OVN Chassis Agents (Data Plane)
+  # ----------------------------------------
+
+  ovn_controller:
+    enabled: "{{ enable_ovn | default(true) | bool }}"
+    groups:
+      - "network"
+      - "compute"
+    description: "SELinux domain for OVN Chassis Controller"
+    domain: "kolla_ovn_controller_t"
+    exec_type: "kolla_ovn_controller_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type var_run_t;"
+      - "class tcp_socket { name_connect };"
+      - "class sock_file { getattr read write };"
+    allow_rules:
+      # Requires outbound network access to query the remote Southbound DB on the controllers
+      - "allow kolla_ovn_controller_t port_t:tcp_socket name_connect;"
+      # Requires access to the local unix sockets created by openvswitch_vswitchd
+      - "allow kolla_ovn_controller_t var_run_t:sock_file { getattr read write };"

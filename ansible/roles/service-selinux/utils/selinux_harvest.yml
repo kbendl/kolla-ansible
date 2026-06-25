@@ -1,0 +1,79 @@
+---
+
+# kbendl - Run this individual playbook from the control node
+# This playbook
+# - connects to all the baremetal nodes
+# - extracts the AVC denials of Kolla container types with
+#       scontext that starts with `kolla`
+# - pulls the lists back and through the Python parser
+#
+# Run it like this:
+#    cd service-selinux/ansible && ansible ./roles/service-selinux/tasks/selinux_harvest.yml
+
+- name: Harvest and process SELinux AVC denials
+  hosts: baremetal
+  become: true
+  vars:
+    local_harvest_dir: "/tmp/kolla_selinux_harvest"
+  tasks:
+    - name: Ensure local harvest directory exists
+      ansible.builtin.file:
+        path: "{{ local_harvest_dir }}"
+        state: directory
+        mode: '0755'
+      delegate_to: localhost
+      run_once: true
+      become: false
+
+    - name: Find Kolla-related AVC denials in audit.log
+      ansible.builtin.shell: |
+        set -o pipefail
+        ausearch -m AVC -ts recent -i | grep "scontext=.*kolla_" || true
+      register: node_audit_logs
+      changed_when: false
+
+    - name: Save raw audit logs locally
+      ansible.builtin.copy:
+        content: "{{ node_audit_logs.stdout }}"
+        dest: "{{ local_harvest_dir }}/audit_{{ inventory_hostname }}.log"
+        mode: '0644'
+      delegate_to: localhost
+      become: false
+      when: node_audit_logs.stdout | length > 0
+
+    - name: Check for harvested audit logs
+      ansible.builtin.find:
+        paths: "{{ local_harvest_dir }}"
+        patterns: "audit_*.log"
+      delegate_to: localhost
+      run_once: true
+      become: false
+      register: harvested_files
+
+    - name: Aggregate logs, run audit2allow, and parse into YAML
+      ansible.builtin.cmd:
+        cmd: |
+          set -o pipefail
+          cat {{ local_harvest_dir }}/audit_*.log \
+            | audit2allow \
+            | python3 {{ playbook_dir }}/../tools/selinux_audit2yaml.py
+      register: yaml_output
+      changed_when: false
+      delegate_to: localhost
+      run_once: true
+      become: false
+      when: harvested_files.matched > 0
+
+    - name: Display newly discovered YAML policies
+      ansible.builtin.debug:
+        msg: "{{ yaml_output.stdout_lines }}"
+      delegate_to: localhost
+      run_once: true
+      when: harvested_files.matched > 0
+
+    - name: No kolla-related AVC denials found
+      ansible.builtin.debug:
+        msg: "No kolla-related AVC denials were harvested from any node."
+      delegate_to: localhost
+      run_once: true
+      when: harvested_files.matched == 0

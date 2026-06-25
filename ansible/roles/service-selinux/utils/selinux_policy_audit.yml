@@ -1,0 +1,63 @@
+---
+# selinux_policy_audit.yml
+
+- name: SELinux Policy Discovery Audit
+  hosts: all
+  gather_facts: true
+  vars:
+    selinux_role_path: "{{ playbook_dir }}/roles/service-selinux"
+
+  tasks:
+    - name: 1. Identify all defined 'enable_*' variables
+      ansible.builtin.set_fact:
+        all_enable_vars: "{{ query('varnames', '^enable_.*') | list }}"
+
+    - name: 2. Filter for services that are actually true
+      ansible.builtin.set_fact:
+        discovered_services: >-
+          {{ query('varnames', '^enable_.*')
+          | map('extract', vars)
+          | map('bool')
+          | zip(query('varnames', '^enable_.*'))
+          | selectattr('0')
+          | map(attribute='1')
+          | map('regex_replace', '^enable_', '')
+          | list }}
+
+    - name: 3. List your host's inventory groups
+      ansible.builtin.debug:
+        msg:
+          - "Host: {{ inventory_hostname }}"
+          - "Groups: {{ group_names }}"
+          - "Discovered Enabled Services: {{ discovered_services }}"
+
+    - name: 4. Check policy file existence for discovered services
+      ansible.builtin.stat:
+        path: "{{ selinux_role_path }}/defaults/{{ item }}.yml"
+      loop: "{{ discovered_services }}"
+      register: policy_files
+
+    - name: 5. Report missing policy files
+      ansible.builtin.debug:
+        msg: "Missing policy file for service: {{ item.item }}"
+      loop: "{{ policy_files.results }}"
+      when: not item.stat.exists
+
+    - name: 6. Load and audit a specific service (e.g., keystone)
+      ansible.builtin.include_vars:
+        file: "{{ selinux_role_path }}/defaults/{{ item }}.yml"
+      loop: "{{ discovered_services }}"
+      when: item == 'keystone' or item == 'nova'
+
+    - name: 7. Test Group Intersection for Keystone (if enabled)
+      ansible.builtin.debug:
+        msg:
+          - "Keystone Groups: {{
+              kolla_selinux_policies_keystone.keystone.groups }}"
+          - "Intersection: {{ kolla_selinux_policies_keystone.keystone.groups
+              | intersect(group_names) }}"
+          - "Match Found: {{
+              (kolla_selinux_policies_keystone.keystone.groups
+              | intersect(group_names)
+              | length > 0)
+              }}"

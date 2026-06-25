@@ -86,3 +86,9 @@ hacluster_pacemaker_remote_extra_volumes: "{{ hacluster_extra_volumes }}"
 
 # this is TCP port
 hacluster_pacemaker_remote_port: 3121
+
+
+###################
+# Enable SELinux
+###################
+hacluster_selinux_enable: "{{ kolla_hacluster_selinux_enable | default(true) | bool }}"

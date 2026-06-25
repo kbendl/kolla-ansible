@@ -1,0 +1,18 @@
+---
+kolla_selinux_policies_redis:
+  redis:
+    enabled: "{{ enable_redis | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "Dedicated SELinux domain for Redis"
+    domain: "kolla_redis_t"
+    exec_type: "kolla_redis_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "class tcp_socket { name_bind name_connect };"
+      # Redis sometimes modifies its own process limits for high connection counts
+      - "class process { setrlimit };"
+    allow_rules:
+      - "allow kolla_redis_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_redis_t self:process setrlimit;"

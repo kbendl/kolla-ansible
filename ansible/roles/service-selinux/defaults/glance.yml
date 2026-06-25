@@ -1,0 +1,32 @@
+---
+kolla_selinux_policies_glance:
+  glance_api:
+    _helpers:
+      - bootstrap_glance
+    enabled: "{{ enable_glance | default(true) | bool }}"
+    groups:
+      - "control"
+    description: "Dedicated SELinux domain for Glance API"
+    domain: "kolla_glance_api_t"
+    exec_type: "kolla_glance_api_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type node_t;"
+      - "type proc_t;"
+      - "type mysqld_port_t;"
+      # Adjust this type based on your storage backend (e.g., nfs_t, cephfs_t, or container_file_t)
+      - "type nfs_t;"
+      - "type cephfs_t;"
+      - "class tcp_socket { name_bind name_connect node_bind };"
+      - "class dir { read write add_name remove_name search };"
+      - "class file { read write create getattr unlink open ioctl };"
+    allow_rules:
+      - "allow kolla_glance_api_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_glance_api_t node_t:tcp_socket node_bind;"
+      - "allow kolla_glance_api_t proc_t:file { read open getattr ioctl };"
+      - "allow kolla_glance_api_t mysqld_port_t:tcp_socket name_connect;"
+      - "allow kolla_glance_api_t nfs_t:dir { read write add_name remove_name search };"
+      - "allow kolla_glance_api_t nfs_t:file { read write create getattr unlink open };"
+      - "allow kolla_glance_api_t cephfs_t:dir { read write add_name remove_name search };"
+      - "allow kolla_glance_api_t cephfs_t:file { read write create getattr unlink open };"

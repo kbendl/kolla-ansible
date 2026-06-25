@@ -1,0 +1,6 @@
+# default variables for service-selinux
+#
+# See other items in this folder for selinux policy
+# for each set of services.
+enable_selinux: true
+selinux_profile_build_dir: "/etc/selinux/kolla_custom_profiles"

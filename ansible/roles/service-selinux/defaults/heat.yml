@@ -1,0 +1,34 @@
+---
+kolla_selinux_policies_heat:
+  heat:
+    _helpers:
+      - bootstrap_heat
+    enabled: "{{ enable_heat | default(true) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Heat services (API, CFN, Engine)"
+    domain: "kolla_heat_t"
+    exec_type: "kolla_heat_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type node_t;"
+      - "type proc_t;"
+      - "type mysqld_port_t;"
+      - "type commplex_main_port_t;"
+      - "class tcp_socket { name_bind name_connect node_bind };"
+    allow_rules:
+      - "allow kolla_heat_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_heat_t node_t:tcp_socket node_bind;"
+      - "allow kolla_heat_t proc_t:file { read open getattr ioctl };"
+      - "allow kolla_heat_t mysqld_port_t:tcp_socket name_connect;"
+      - "allow kolla_heat_t commplex_main_port_t:tcp_socket name_connect;"
+    interfaces:
+      # The _effective_security_opt() auto-generation strips the
+      # 'bootstrap_' prefix from 'bootstrap_heat' → 'kolla_heat_t'
+      # (which matches this domain).  But the long-running containers
+      # are named heat_api / heat_api_cfn / heat_engine, so we alias
+      # those auto-generated labels back to kolla_heat_t.
+      - "typealias kolla_heat_t alias kolla_heat_api_t;"
+      - "typealias kolla_heat_t alias kolla_heat_api_cfn_t;"
+      - "typealias kolla_heat_t alias kolla_heat_engine_t;"

@@ -11,3 +11,8 @@ bifrost_deploy_image_full: "{{ bifrost_deploy_image }}:{{ bifrost_deploy_tag }}"
 bifrost_deploy_container_proxy: "{{ container_proxy }}"
 
 bifrost_deploy_verbosity: "-vvvv"
+
+###################
+# Enable SELinux
+###################
+bifrost_selinux_enable: "{{ kolla_bifrost_selinux_enable | default(true) | bool }}"

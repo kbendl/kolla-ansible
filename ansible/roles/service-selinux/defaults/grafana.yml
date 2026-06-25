@@ -1,0 +1,16 @@
+---
+kolla_selinux_policies_grafana:
+  grafana:
+    enabled: "{{ enable_grafana | default(true) | bool }}"
+    groups:
+      - "monitoring"
+      - "control"
+    description: "SELinux domain for Grafana UI"
+    domain: "kolla_grafana_t"
+    exec_type: "kolla_grafana_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "class tcp_socket { name_bind name_connect };"
+    allow_rules:
+      - "allow kolla_grafana_t port_t:tcp_socket { name_bind name_connect };"

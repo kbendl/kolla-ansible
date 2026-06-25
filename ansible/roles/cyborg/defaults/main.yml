@@ -220,3 +220,9 @@ cyborg_database_enable_tls_internal: "{{ database_enable_tls_internal | bool }}"
 # Copy certificates
 ###################
 cyborg_copy_certs: "{{ kolla_copy_ca_into_containers | bool or cyborg_database_enable_tls_internal | bool }}"
+
+
+####################
+# Enable SELinux
+####################
+cyborg_selinux_enable: "{{ kolla_cyborg_selinux_enable | default(true) | bool }}"

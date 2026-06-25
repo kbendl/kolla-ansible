@@ -143,3 +143,8 @@ ovn_leader_election_pause: 5
 
 # Extra command line arguments for ovn-northd
 ovn_northd_cmdline_extras: ""
+
+####################
+# Enable SELinux
+####################
+ovn_db_selinux_enable: "{{ kolla_ovn_db_selinux_enable | default(true) | bool }}"

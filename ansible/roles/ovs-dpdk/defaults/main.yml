@@ -91,3 +91,8 @@ ovsdpdk_vswitchd_default_volumes:
 ovsdpdk_extra_volumes: "{{ default_extra_volumes }}"
 ovsdpdk_db_extra_volumes: "{{ ovsdpdk_extra_volumes }}"
 ovsdpdk_vswitchd_extra_volumes: "{{ ovsdpdk_extra_volumes }}"
+
+####################
+# Enable SELinux
+####################
+ovsdpdk_selinux_enable: "{{ kolla_ovsdpdk_selinux_enable | default(true) | bool }}"

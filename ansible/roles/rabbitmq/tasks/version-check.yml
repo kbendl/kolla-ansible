@@ -47,11 +47,15 @@
           check_mode: false
 
         - name: Parse RabbitMQ versions
+          when:
+            - rabbitmq_version_current.stdout is defined
+            - rabbitmq_version_new.stdout is defined
           ansible.builtin.set_fact:
             ver_curr_raw: "{{ rabbitmq_version_current.stdout | trim }}"
             ver_new_raw: "{{ rabbitmq_version_new.stdout | trim }}"
 
         - name: Calculate Major and Minor components
+          when: ver_curr_raw is defined and ver_new_raw is defined
           ansible.builtin.set_fact:
             curr_major: "{{ ver_curr_raw.split('.')[0] }}"
             curr_minor: "{{ ver_curr_raw.split('.')[1] }}"
@@ -59,11 +63,15 @@
             new_minor: "{{ ver_new_raw.split('.')[1] }}"
 
         - name: Determine Short Versions (X.Y)
+          when: >-
+            curr_major is defined and curr_minor is defined and
+            new_major is defined and new_minor is defined
           ansible.builtin.set_fact:
             ver_curr_short: "{{ curr_major }}.{{ curr_minor }}"
             ver_new_short: "{{ new_major }}.{{ new_minor }}"
 
         - name: Check version upgrade validity
+          when: ver_curr_short is defined and ver_new_short is defined
           vars:
             is_standard_upgrade: >-
               {{ (curr_major == new_major) and (new_minor | int == curr_minor | int + 1) }}
@@ -95,8 +103,19 @@
               Please upgrade to an intermediate version first.
 
         - name: Catch when RabbitMQ is being downgraded
+          when: ver_curr_raw is defined and ver_new_raw is defined
           ansible.builtin.assert:
             that: ver_curr_raw is version(ver_new_raw, 'le', version_type='semver')
             fail_msg: >
               Looks like you're about to downgrade RabbitMQ from version {{ ver_curr_raw }} to version {{ ver_new_raw }}.
               If you're absolutely certain you want to do this, please skip the tag `rabbitmq-version-check`.
+
+        - name: Warn that new RabbitMQ version could not be determined
+          when:
+            - rabbitmq_version_new.stdout is not defined
+          ansible.builtin.debug:
+            msg: >-
+              Could not determine the new RabbitMQ version (helper container
+              failed to start). This is expected on a fresh deploy when
+              SELinux is enabled and policies have not yet been compiled.
+              Skipping version upgrade check.

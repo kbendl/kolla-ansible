@@ -276,3 +276,8 @@ heat_database_enable_tls_internal: "{{ database_enable_tls_internal | bool }}"
 # Copy certificates
 ###################
 heat_copy_certs: "{{ kolla_copy_ca_into_containers | bool or heat_enable_tls_backend | bool or heat_database_enable_tls_internal | bool }}"
+
+####################
+# Enable SELinux
+####################
+heat_selinux_enable: "{{ kolla_heat_selinux_enable | default(true) | bool }}"

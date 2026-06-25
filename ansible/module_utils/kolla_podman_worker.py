@@ -58,6 +58,7 @@ CONTAINER_PARAMS = [
     'restart_policy',   # set to none, handled by systemd
     'remove',           # bool
     'restart_tries',    # int doesn't matter done by systemd
+    'security_opt',     # str
     'stop_timeout',     # int
     'tty',              # bool
     # volumes need to be parsed, see parse_volumes() for more info
@@ -74,6 +75,8 @@ class PodmanWorker(ContainerWorker):
         self.pc = PodmanClient(base_url=uri)
 
     def prepare_container_args(self):
+        # Ensure effective security_opt is computed
+        self.params['security_opt'] = self._effective_security_opt()
         args = dict(
             network_mode='host'
         )

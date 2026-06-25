@@ -291,7 +291,7 @@ class DockerWorker(ContainerWorker):
             'network_mode': 'host',
             'ipc_mode': self.params.get('ipc_mode'),
             'cap_add': self.params.get('cap_add'),
-            'security_opt': self.params.get('security_opt'),
+            'security_opt': self._effective_security_opt(),
             'pid_mode': self.params.get('pid_mode'),
             'privileged': self.params.get('privileged'),
             'tmpfs': self.generate_tmpfs(),

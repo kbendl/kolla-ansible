@@ -1,0 +1,68 @@
+policy_module(kolla_{{ policy.key }}, 1.0)
+
+# ==========================================================
+# Kolla Custom SELinux Profile: {{ policy.key }}
+# Description: {{ policy.value.description }}
+# ==========================================================
+
+require {
+{% for req in policy.value.requires %}
+{{ req }}
+{% endfor %}
+attribute container_domain;
+attribute svirt_sandbox_domain;
+type svirt_sandbox_file_t;
+class process { transition signal };
+class file { read write getattr open };
+class dir { read search getattr };
+}
+
+# ----------------------------------------------------------
+# Domain Definition & Transition
+# Define the types
+# ----------------------------------------------------------
+type {{ policy.value.domain }};
+  typeattribute {{ policy.value.domain }} container_domain;
+  typeattribute {{ policy.value.domain }} svirt_sandbox_domain;
+type {{ policy.value.exec_type }};
+
+# Use the standard daemon interfaces
+# init_daemon_domain(kolla_{{ policy.value.domain }}, {{ policy.value.exec_type }})
+init_daemon_domain({{ policy.value.domain }}, {{ policy.value.exec_type }})
+
+# Allow the container runtime to transition to our new domain
+domain_auto_trans(container_runtime_t, {{ policy.value.exec_type }}, {{ policy.value.domain }})
+
+# ----------------------------------------------------------
+# Common Sandbox File Access
+# ----------------------------------------------------------
+# Allow all Kolla domains to read/search standard container storage
+allow {{ policy.value.domain }} svirt_sandbox_file_t:dir { read search getattr };
+allow {{ policy.value.domain }} svirt_sandbox_file_t:file { read getattr open };
+
+# ----------------------------------------------------------
+# Allow Rules
+# ----------------------------------------------------------
+{% for rule in policy.value.allow_rules | default([]) %}
+{{ rule }}
+{% endfor %}
+
+# ----------------------------------------------------------
+# Interfaces
+# ----------------------------------------------------------
+{% if policy.value.interfaces | default([]) %}
+# Interface calls
+{% for iface in policy.value.interfaces | default([]) %}
+{{ iface }}
+{% endfor %}
+{% endif %}
+
+# ----------------------------------------------------------
+# Helper Container Type Aliases
+# Each alias lets a one-shot helper/bootstrap container
+# (e.g. nova_api_map_cell0) reuse this service's SELinux
+# domain without needing its own separate policy.
+# ----------------------------------------------------------
+{% for helper_name in policy.value._helpers | default([]) %}
+typealias {{ policy.value.domain }} alias kolla_{{ helper_name }}_t;
+{% endfor %}

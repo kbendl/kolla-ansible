@@ -34,3 +34,8 @@ kolla_toolbox_extra_volumes: "{{ default_extra_volumes }}"
 # Copy certificates
 ###################
 kolla_toolbox_copy_certs: "{{ kolla_copy_ca_into_containers | bool }}"
+
+####################
+# Enable SELinux
+####################
+kolla_toolbox_selinux_enable: "{{ kolla_kolla_toolbox_selinux_enable | default(true) | bool }}"

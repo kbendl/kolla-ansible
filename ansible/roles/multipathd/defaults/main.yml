@@ -26,3 +26,8 @@ multipathd_default_volumes:
   - "/lib/modules:/lib/modules:ro"
   - "/sys/kernel/config:/configfs"
 multipathd_extra_volumes: "{{ default_extra_volumes }}"
+
+####################
+# Enable SELinux
+####################
+multipathd_selinux_enable: "{{ kolla_multipathd_selinux_enable | default(true) | bool }}"

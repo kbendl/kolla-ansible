@@ -42,3 +42,8 @@ memcached_connection_limit: "5000"
 # NOTE(jeffrey4l): max memory to use for items in megabytes. default is 64MB,
 # which is too small for production environment.
 memcached_max_memory: "256"
+
+####################
+# Enable SELinux
+####################
+memcached_selinux_enable: "{{ kolla_memcached_selinux_enable | default(true) | bool }}"

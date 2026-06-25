@@ -64,11 +64,31 @@
         - enable_prometheus_{{ enable_prometheus | bool }}
         - enable_rabbitmq_{{ enable_rabbitmq | bool }}
         - enable_valkey_{{ enable_valkey | bool }}
+        - enable_redis_{{ enable_redis | bool }}
+        - enable_selinux_{{ enable_selinux | bool }}
         - enable_skyline_{{ enable_skyline | bool }}
         - enable_tacker_{{ enable_tacker | bool }}
         - enable_trove_{{ enable_trove | bool }}
         - enable_watcher_{{ enable_watcher | bool }}
   tags: always
+
+- name: Apply SELinux policies for containers
+  gather_facts: false
+  hosts: all
+  max_fail_percentage: >-
+    {{ selinux_max_fail_percentage |
+       default(kolla_max_fail_percentage) |
+       default(100) }}
+  tags:
+    - selinux
+  tasks:
+    - name: Configure SELinux policy for enabled services
+      ansible.builtin.include_role:
+        name: service-selinux
+      when:
+        - enable_selinux | bool
+        - ansible_os_family | default('') == 'RedHat'
+        - ansible_distribution_major_version | default('0') | int >= 9
 
 - name: Apply role prechecks
   gather_facts: false

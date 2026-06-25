@@ -128,3 +128,8 @@ etcd_copy_certs: "{{ kolla_copy_ca_into_containers | bool or etcd_enable_tls | b
 # TLS
 ###################
 etcd_enable_tls_backend: "{{ etcd_enable_tls | bool }}"
+
+###################
+# Enable SELinux
+###################
+etcd_selinux_enable: "{{ kolla_etcd_selinux_enable | default(true) | bool }}"

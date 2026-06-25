@@ -1,0 +1,35 @@
+---
+kolla_selinux_policies_opensearch:
+  opensearch:
+    enabled: "{{ enable_opensearch | default(true) | bool }}"
+    groups:
+      - "monitoring"
+      - "control"
+    description: "SELinux domain for OpenSearch Indexer"
+    domain: "kolla_opensearch_t"
+    exec_type: "kolla_opensearch_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "class capability { ipc_lock sys_resource };"
+      - "class process { setrlimit };"
+      - "class tcp_socket { name_bind name_connect };"
+    allow_rules:
+      - "allow kolla_opensearch_t self:capability { ipc_lock sys_resource };"
+      - "allow kolla_opensearch_t self:process setrlimit;"
+      - "allow kolla_opensearch_t port_t:tcp_socket { name_bind name_connect };"
+
+  opensearch_dashboards:
+    enabled: "{{ enable_opensearch | default(true) | bool }}"
+    groups:
+      - "monitoring"
+      - "control"
+    description: "SELinux domain for OpenSearch Dashboards (UI)"
+    domain: "kolla_os_dashboards_t"
+    exec_type: "kolla_os_dashboards_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "class tcp_socket { name_bind name_connect };"
+    allow_rules:
+      - "allow kolla_os_dashboards_t port_t:tcp_socket { name_bind name_connect };"

@@ -5,6 +5,7 @@ rabbitmq_services:
     group: "{{ role_rabbitmq_groups }}"
     enabled: true
     image: "{{ rabbitmq_image_full }}"
+    privileged: "{{ not rabbitmq_selinux_enable | bool }}"
     bootstrap_environment:
       KOLLA_BOOTSTRAP:
       KOLLA_CONFIG_STRATEGY: "{{ config_strategy }}"
@@ -137,3 +138,8 @@ rabbitmq_allowed_upgrades:
   "4.0":
     - "4.1"
     - "4.2"
+
+####################
+# Enable SELinux
+####################
+rabbitmq_selinux_enable: "{{ kolla_rabbitmq_selinux_enable | default(true) | bool }}"

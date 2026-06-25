@@ -15,6 +15,8 @@
     labels:
       BOOTSTRAP:
     name: "bootstrap_neutron"
+    security_opt:
+      - "label=type:kolla_neutron_server_t"
     restart_policy: oneshot
     volumes: "{{ neutron_server.volumes }}"
   run_once: true

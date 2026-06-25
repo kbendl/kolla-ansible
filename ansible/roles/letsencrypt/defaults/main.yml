@@ -66,3 +66,8 @@ letsencrypt_key_type: ""
 # Copy certificates
 ###################
 letsencrypt_copy_certs: "{{ kolla_copy_ca_into_containers | bool }}"
+
+####################
+# Enable SELinux
+####################
+letsencrypt_selinux_enable: "{{ kolla_letsencrypt_selinux_enable | default(true) | bool }}"

@@ -28,6 +28,14 @@ prometheus_services:
         backend_http_extra:
           - "option httpchk GET /-/ready HTTP/1.0"
           - "http-check send hdr Authorization 'Basic {{ (prometheus_haproxy_user + ':' + prometheus_haproxy_password) | b64encode }}'"
+  prometheus-node-exporter:
+    container_name: prometheus_node_exporter
+    group: prometheus-node-exporter
+    enabled: "{{ enable_prometheus_node_exporter | bool }}"
+    image: "{{ prometheus_node_exporter_image_full }}"
+    command: "--path.rootfs=/host {{ prometheus_node_exporter_cmdline_extras }}"
+    volumes: "{{ prometheus_node_exporter_default_volumes + prometheus_node_exporter_extra_volumes }}"
+    dimensions: "{{ prometheus_node_exporter_dimensions }}"
   prometheus-mysqld-exporter:
     container_name: prometheus_mysqld_exporter
     group: prometheus-mysqld-exporter
@@ -540,3 +548,8 @@ prometheus_openstack_network_exporter_interval: "{{ prometheus_scrape_interval }
 # Copy certificates
 ###################
 prometheus_copy_certs: "{{ kolla_copy_ca_into_containers | bool }}"
+
+####################
+# Enable SELinux
+####################
+prometheus_selinux_enable: "{{ kolla_prometheus_selinux_enable | default(true) | bool }}"

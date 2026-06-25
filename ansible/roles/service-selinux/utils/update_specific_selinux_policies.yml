@@ -1,0 +1,16 @@
+---
+- name: Apply or update specific SELinux policies
+  hosts: all
+  become: true
+
+  vars:
+    # Example:
+    # Restrict the service-selinux role to these services only.
+    # Use for your own ad hoc runs, or simply use the
+    # limit_selinux_services variable in your playbook.
+    limit_selinux_services:
+      - prometheus
+      - grafana
+
+  roles:
+    - role: service-selinux

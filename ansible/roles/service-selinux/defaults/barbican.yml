@@ -1,0 +1,47 @@
+---
+kolla_selinux_policies_barbican:
+  # ----------------------------------------
+  # Barbican API
+  # ----------------------------------------
+  barbican_api:
+    _helpers:
+      - bootstrap_barbican
+    enabled: "{{ enable_barbican | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Barbican API"
+    domain: "kolla_barbican_api_t"
+    exec_type: "kolla_barbican_api_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "class tcp_socket { name_bind name_connect };"
+    allow_rules:
+      # API needs to bind to its assigned port and connect back to MariaDB/RabbitMQ
+      - "allow kolla_barbican_api_t port_t:tcp_socket { name_bind name_connect };"
+
+  # ----------------------------------------
+  # Barbican Worker (The Crypto Engine)
+  #  ^^^ rules intentionally fewer back for testing
+  # ----------------------------------------
+  barbican_worker:
+    enabled: "{{ enable_barbican | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Barbican Cryptographic Worker"
+    domain: "kolla_barbican_worker_t"
+    exec_type: "kolla_barbican_worker_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "class tcp_socket { name_connect };"
+      - "class process { setrlimit };"
+      # Critical capability to lock memory and prevent secrets from writing to swap
+      - "class capability { ipc_lock };"
+    allow_rules:
+      - "allow kolla_barbican_worker_t port_t:tcp_socket name_connect;"
+
+  # ----------------------------------------
+  # Barbican Keystone Listener
+  #  ^^^ policy intentionally omitted for testing
+  # ----------------------------------------

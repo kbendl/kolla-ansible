@@ -145,12 +145,31 @@ class ContainerWorker(ABC):
             current = []
         return sorted(current), sorted(self.params.get('cap_add', []))
 
+    def _effective_security_opt(self):
+        """Return the effective security_opt list, auto-generating a
+        SELinux label when none is explicitly set."""
+        sec_opt = self.params.get('security_opt') or []
+        name = self.params.get('name')
+        if not sec_opt and name:
+            # Strip common affixes so bootstrap/helper containers reuse
+            # the SELinux domain of their parent service.
+            for prefix in ('bootstrap_', 'init_upgrade_', 'finish_upgrade_'):
+                if name.startswith(prefix):
+                    name = name[len(prefix):]
+                    break
+            for suffix in ('_bootstrap',):
+                if name.endswith(suffix):
+                    name = name[:-len(suffix)]
+                    break
+            return ['label=type:kolla_{}_t'.format(name)]
+        return list(sec_opt)
+
     def diff_security_opt(self, container_info):
         try:
             current = container_info['HostConfig'].get('SecurityOpt') or []
         except (KeyError, TypeError):
             current = []
-        return sorted(current), sorted(self.params.get('security_opt', []))
+        return sorted(current), sorted(self._effective_security_opt())
 
     def diff_image(self, container_info):
         current = (container_info.get('Image') or
@@ -270,7 +289,7 @@ class ContainerWorker(ABC):
         # host pid mode or privileged. So no need to compare security opts
         if ipc_mode == 'host' or pid_mode == 'host' or privileged:
             return False
-        new_sec_opt = self.params.get('security_opt', list())
+        new_sec_opt = self._effective_security_opt()
         try:
             current_sec_opt = container_info['HostConfig'].get('SecurityOpt',
                                                                list())

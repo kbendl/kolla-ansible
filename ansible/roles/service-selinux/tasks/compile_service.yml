@@ -1,0 +1,35 @@
+---
+- name: "Set policy facts for {{ current_selinux_service }}"
+  ansible.builtin.set_fact:
+    current_policies: "{{ lookup('vars', 'kolla_selinux_policies_'
+      + current_selinux_service, default={}) }}"
+
+- name: "Generate a Type Enforcement (.te) file for {{ current_selinux_service }}"
+  ansible.builtin.template:
+    src: "kolla_selinux_profile.te.j2"
+    dest: "{{ selinux_profile_build_dir }}/kolla_{{ policy.key }}.te"
+    mode: '0644'
+  become: true
+  loop: "{{ current_policies | dict2items }}"
+  loop_control:
+    loop_var: policy
+  when:
+    - policy.value.enabled
+    - policy.value.groups is defined and ((
+      policy.value.groups + policy.value.groups
+      | map('replace', '_', '-') | list)
+      | intersect(group_names)
+      | length > 0 )
+  register: template_status
+
+- name: "Build SELinux .pp file for {{ current_selinux_service }}."
+  ansible.builtin.command:
+    cmd: "make -f /usr/share/selinux/devel/Makefile kolla_{{ policy_result.policy.key }}.pp"
+    chdir: "{{ selinux_profile_build_dir }}"
+  become: true
+  loop: "{{ template_status.results | selectattr('changed') }}"
+  loop_control:
+    loop_var: policy_result
+    label: "{{ policy_result.policy.key }}"
+  register: build_result
+  changed_when: true

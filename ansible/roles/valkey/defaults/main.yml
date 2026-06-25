@@ -74,3 +74,8 @@ valkey_sentinel_extra_volumes: "{{ default_extra_volumes }}"
 
 valkey_conf_path: "/etc/valkey/valkey.conf"
 valkey_generated_conf_path: "/etc/valkey/valkey-regenerated-by-config-rewrite.conf"
+
+####################
+# Enable SELinux
+####################
+valkey_selinux_enable: "{{ kolla_valkey_selinux_enable | default(true) | bool }}"

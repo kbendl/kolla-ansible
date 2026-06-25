@@ -1,0 +1,142 @@
+---
+kolla_selinux_policies_nova:
+  nova_api:
+    _helpers:
+      - nova_api_bootstrap
+      - nova_api_map_cell0
+      - nova_api_online_data_migrations
+      - nova_upgrade_checks
+    enabled: "{{ enable_nova | default(true) | bool }}"
+    description: "SELinux domain for nova_api"
+    groups:
+      - "control"
+    domain: "kolla_nova_api_t"
+    exec_type: "kolla_nova_api_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type node_t;"
+      - "type proc_t;"
+      - "type mysqld_port_t;"
+      - "class tcp_socket { name_bind name_connect node_bind };"
+    allow_rules:
+      - "allow kolla_nova_api_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_nova_api_t node_t:tcp_socket node_bind;"
+      - "allow kolla_nova_api_t proc_t:file { read open getattr ioctl };"
+      - "allow kolla_nova_api_t mysqld_port_t:tcp_socket name_connect;"
+
+  nova_scheduler:
+    enabled: "{{ enable_nova | default(true) | bool }}"
+    description: "SELinux domain for nova_scheduler"
+    groups:
+      - "control"
+    domain: "kolla_nova_scheduler_t"
+    exec_type: "kolla_nova_scheduler_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "class tcp_socket { name_connect };"
+    allow_rules:
+      - "allow kolla_nova_scheduler_t port_t:tcp_socket name_connect;"
+
+  nova_compute:
+    enabled: "{{ enable_nova_compute | default(true) | bool }}"
+    description: "SELinux domain for nova_compute container"
+    groups:
+      - "compute"
+    domain: "kolla_nova_compute_t"
+    exec_type: "kolla_nova_compute_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type virt_var_lib_t;"
+      - "class capability { sys_admin net_admin dac_override };"
+    allow_rules:
+      - "allow kolla_nova_compute_t self:capability { sys_admin net_admin dac_override };"
+
+  nova_libvirt:
+    _helpers:
+      - libvirt_version_check
+    enabled: "{{ enable_nova_compute | default(true) | bool }}"
+    description: "SELinux domain for nova_libvirt container"
+    groups:
+      - "compute"
+    domain: "kolla_nova_libvirt_t"
+    exec_type: "kolla_nova_libvirt_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type virt_image_t;"
+      - "type proc_t;"
+      - "class capability { sys_admin sys_ptrace mknod net_admin dac_override ipc_lock };"
+      - "class process { setrlimit };"
+    allow_rules:
+      - "allow kolla_nova_libvirt_t self:capability { sys_admin sys_ptrace mknod net_admin dac_override ipc_lock };"
+      - "allow kolla_nova_libvirt_t self:process setrlimit;"
+      - "allow kolla_nova_libvirt_t proc_t:file { read open getattr ioctl };"
+
+  # selinux_policies_nova_cell:
+  nova_conductor:
+    _helpers:
+      - nova_cell_bootstrap
+      - create_cell_nova
+      - nova_list_cells
+      - nova_cell_online_data_migrations
+    enabled: "{{ enable_nova | default(true) | bool }}"
+    description: "SELinux domain for the nova_conductor"
+    groups:
+      - "control"
+    domain: "kolla_nova_conductor_t"
+    exec_type: "kolla_nova_conductor_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type node_t;"
+      - "type proc_t;"
+      - "type mysqld_port_t;"
+      - "class tcp_socket { name_connect node_bind };"
+    allow_rules:
+      # Conductor primarily needs outbound connections to MariaDB and RabbitMQ
+      - "allow kolla_nova_conductor_t self:tcp_socket name_connect;"
+      - "allow kolla_nova_conductor_t node_t:tcp_socket node_bind;"
+      - "allow kolla_nova_conductor_t proc_t:file { read open getattr ioctl };"
+      - "allow kolla_nova_conductor_t mysqld_port_t:tcp_socket name_connect;"
+
+  nova_proxy:
+    enabled: "{{ enable_nova | default(true) | bool }}"
+    description: "SELinux domain for nova_proxy"
+    groups:
+      - "control"
+    domain: "kolla_nova_novnc_t"
+    exec_type: "kolla_nova_novnc_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "class tcp_socket { name_bind name_connect };"
+    allow_rules:
+      - "allow kolla_nova_novnc_t port_t:tcp_socket { name_bind name_connect };"
+
+
+  nova_ssh:
+    enabled: "{{ enable_nova_ssh | default(true) | bool }}"
+    # nova_ssh primarily runs on the compute data plane, but we include
+    # control groups for converged node architectures.
+    groups:
+      - "compute"
+      - "control"
+    description: "SELinux domain for Nova SSH service (Instance migrations)"
+    domain: "kolla_nova_ssh_t"
+    exec_type: "kolla_nova_ssh_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type ssh_port_t;"
+      - "type port_t;"
+      - "class tcp_socket { name_bind name_connect };"
+      - "class process { setrlimit };"
+      # sshd requires strict POSIX capability access for user separation
+      - "class capability { chown dac_override fowner fsetid setgid setuid sys_chroot audit_write };"
+    allow_rules:
+      # Bind to the standard (or custom) SSH port for incoming migration tunnels
+      - "allow kolla_nova_ssh_t ssh_port_t:tcp_socket name_bind;"
+      - "allow kolla_nova_ssh_t port_t:tcp_socket name_connect;"
+
+      # Required for sshd's internal privilege separation and chroot jailing
+      - "allow kolla_nova_ssh_t self:capability { chown dac_override fowner fsetid setgid setuid sys_chroot audit_write };"
+      - "allow kolla_nova_ssh_t self:process setrlimit;"

@@ -14,6 +14,8 @@
     labels:
       BOOTSTRAP:
     name: "bootstrap_cinder"
+    security_opt:
+      - "label=type:kolla_cinder_api_t"
     restart_policy: oneshot
     volumes: "{{ cinder_api.volumes | reject('equalto', '') | list }}"
   run_once: true

@@ -60,3 +60,8 @@ prometheus_cadvisor_cmdline_extras: >-
   --disable_metrics=percpu,referenced_memory,cpu_topology,resctrl,udp,advtcp,sched,hugetlb,memory_numa,tcp,process
   --housekeeping_interval={{ prometheus_scrape_interval }}
 prometheus_node_exporter_cmdline_extras: ""
+
+####################
+# Enable SELinux
+####################
+prometheus_node_exporters_selinux_enable: "{{ kolla_prometheus_node_exporters_selinux_enable | default(true) | bool }}"

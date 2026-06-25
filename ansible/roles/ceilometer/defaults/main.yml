@@ -20,7 +20,7 @@ ceilometer_services:
     container_name: ceilometer_compute
     group: ceilometer-compute
     enabled: true
-    privileged: true
+    privileged: "{{ not ceilometer_selinux_enable | bool }}"
     image: "{{ ceilometer_compute_image_full }}"
     volumes: "{{ ceilometer_compute_default_volumes + ceilometer_compute_extra_volumes + lookup('vars', 'run_default_volumes_' + kolla_container_engine) }}"
     dimensions: "{{ ceilometer_compute_dimensions }}"
@@ -209,3 +209,8 @@ ceilometer_prometheus_pushgateway_options:
 # Copy certificates
 ###################
 ceilometer_copy_certs: "{{ kolla_copy_ca_into_containers | bool }}"
+
+###################
+# Enable SELinux
+###################
+ceilometer_selinux_enable: "{{ kolla_ceilometer_selinux_enable | default(true) | bool }}"

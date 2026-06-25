@@ -1,0 +1,71 @@
+---
+# Bootstrap-phase SELinux tasks:
+# runs BEFORE container runtime is installed.
+# Idempotent: if packages are already present, dnf is a no-op.
+
+- name: Ensure SELinux packages are installed (bootstrap)
+  become: true
+  ansible.builtin.dnf:
+    name:
+      - policycoreutils-python-utils
+      - checkpolicy
+      - setroubleshoot-server
+      - setools-console
+      - selinux-policy-devel
+      - container-selinux
+    state: present
+  when:
+    - enable_selinux | default(true) | bool
+    - ansible_os_family | default('') == 'RedHat'
+    - ansible_distribution_major_version | default('0') | int >= 9
+
+- name: Enforce SELinux state (bootstrap)
+  become: true
+  ansible.posix.selinux:
+    policy: targeted
+    state: permissive
+  when:
+    - enable_selinux | default(true) | bool
+    - ansible_os_family | default('') == 'RedHat'
+
+- name: Ensure Kolla SELinux profile build directory exists (bootstrap)
+  become: true
+  ansible.builtin.file:
+    path: "{{ selinux_profile_build_dir | default('/etc/selinux/kolla_custom_profiles') }}"
+    state: directory
+    mode: '0750'
+    owner: root
+    group: root
+  when:
+    - enable_selinux | default(true) | bool
+    - ansible_os_family | default('') == 'RedHat'
+
+- name: Read existing Docker daemon config
+  ansible.builtin.slurp:
+    src: /etc/docker/daemon.json
+  register: _docker_daemon_json
+  ignore_errors: true
+  when: kolla_container_engine == 'docker'
+
+# Merging into `daemon.json` directly didn't work.
+# Since the Docker role's `config.yml` already supports a merge chain
+# ending with `docker_custom_config`, inject the SELinux setting there.
+# Setting a fact that the Docker role can use.
+- name: Set docker_custom_config with selinux-enabled
+  ansible.builtin.set_fact:
+    docker_custom_config: >-
+      {{ docker_custom_config | default({})
+         | combine({'selinux-enabled': true}) }}
+  when:
+    - enable_selinux | default(true) | bool
+    - ansible_os_family | default('') == 'RedHat'
+    - kolla_container_engine == 'docker'
+  notify: Restart docker
+  # docker should not yet running at bootstrap, notify will happen later
+
+- name: Mark SELinux bootstrap as complete
+  ansible.builtin.set_fact:
+    selinux_bootstrap_done: true
+  when:
+    - enable_selinux | default(true) | bool
+    - ansible_os_family | default('') == 'RedHat'

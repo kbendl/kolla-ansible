@@ -320,3 +320,8 @@ keystone_copy_certs: "{{ kolla_copy_ca_into_containers | bool or keystone_enable
 # WSGI
 ############
 keystone_wsgi_socket_port: "5001"
+
+####################
+# Enable SELinux
+####################
+keystone_selinux_enable: "{{ kolla_keystone_selinux_enable | default(true) | bool }}"

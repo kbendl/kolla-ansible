@@ -31,3 +31,8 @@ collectd_extra_volumes: "{{ default_extra_volumes }}"
 # OpenStack
 ####################
 collectd_logging_debug: "{{ openstack_logging_debug }}"
+
+###################
+# Enable SELinux
+###################
+collectd_selinux_enable: "{{ kolla_collectd_selinux_enable | default(true) | bool }}"

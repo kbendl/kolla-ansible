@@ -1,0 +1,22 @@
+---
+kolla_selinux_policies_rabbitmq:
+  rabbitmq:
+    enabled: "{{ enable_rabbitmq | default(true) | bool }}"
+    # RabbitMQ is a core control plane service
+    groups:
+      - "control"
+    description: "Dedicated SELinux domain for RabbitMQ Message Queue"
+    domain: "kolla_rabbitmq_t"
+    exec_type: "kolla_rabbitmq_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type node_t;"
+      - "type proc_t;"
+      - "class tcp_socket { name_bind name_connect node_bind };"
+      - "class file { read open getattr };"
+    allow_rules:
+      - "allow kolla_rabbitmq_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_rabbitmq_t node_t:tcp_socket node_bind;"
+      # Erlang VM requires access to proc_t for resource monitoring
+      - "allow kolla_rabbitmq_t proc_t:file { read open getattr };"

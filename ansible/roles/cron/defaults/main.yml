@@ -35,3 +35,8 @@ cron_logrotate_schedule: "daily"
 # Copy certificates
 ###################
 cron_copy_certs: "{{ kolla_copy_ca_into_containers | bool }}"
+
+####################
+# Enable SELinux
+####################
+cron_selinux_enable: "{{ kolla_cron_selinux_enable | default(true) | bool }}"

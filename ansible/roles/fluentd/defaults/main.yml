@@ -125,3 +125,9 @@ fluentd_input_openstack_services:
     enabled: "{{ enable_watcher | bool }}"
 
 fluentd_enabled_input_openstack_services: "{{ fluentd_input_openstack_services | selectattr('enabled', 'equalto', true) | map(attribute='name') | list }}"
+
+
+###################
+# Enable SELinux
+###################
+fluentd_selinux_enable: "{{ kolla_fluentd_selinux_enable | default(true) | bool }}"
