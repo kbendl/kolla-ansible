@@ -4,6 +4,7 @@ keystone_services:
     container_name: "keystone_api"
     group: "keystone"
     enabled: true
+    privileged: "{{ not keystone_selinux_enable | bool }}"
     image: "{{ keystone_api_image_full }}"
     volumes: "{{ keystone_api_default_volumes + keystone_api_extra_volumes }}"
     dimensions: "{{ keystone_api_dimensions }}"
@@ -37,6 +38,7 @@ keystone_services:
     container_name: "keystone_fernet"
     group: "keystone"
     enabled: true
+    privileged: "{{ not keystone_selinux_enable | bool }}"
     image: "{{ keystone_fernet_image_full }}"
     volumes:
       - "{{ node_config_directory }}/keystone-fernet/:{{ container_config_directory }}/:ro"
@@ -48,6 +50,7 @@ keystone_services:
     container_name: "keystone_httpd"
     group: "keystone"
     enabled: "{{ enable_keystone_federation | bool }}"
+    privileged: "{{ not keystone_selinux_enable | bool }}"
     image: "{{ keystone_httpd_image_full }}"
     volumes: "{{ keystone_httpd_default_volumes + keystone_httpd_extra_volumes }}"
     dimensions: "{{ keystone_httpd_dimensions }}"
@@ -56,6 +59,7 @@ keystone_services:
     container_name: "keystone_ssh"
     group: "keystone"
     enabled: true
+    privileged: "{{ not keystone_selinux_enable | bool }}"
     image: "{{ keystone_ssh_image_full }}"
     volumes:
       - "{{ node_config_directory }}/keystone-ssh/:{{ container_config_directory }}/:ro"
@@ -317,3 +321,8 @@ keystone_copy_certs: "{{ kolla_copy_ca_into_containers | bool or keystone_enable
 # WSGI
 ############
 keystone_wsgi_socket_port: "5001"
+
+####################
+# Enable SELinux
+####################
+keystone_selinux_enable: "{{ kolla_keystone_selinux_enable | default(true) | bool }}"

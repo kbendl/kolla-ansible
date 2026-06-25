@@ -1,0 +1,34 @@
+#!/bin/bash
+set -euo pipefail
+cd "{{ selinux_profile_build_dir }}"
+
+# Module basenames to (re)install, in deterministic order.
+modules=({% for name in _install_names %}"{{ name }}" {% endfor %})
+
+# Install and verify each module individually. Each semodule -i runs in its
+# own transaction, so a changed module that removes or renames a type cannot
+# disturb an unchanged sibling module. A single bulk transaction could drop an
+# already-loaded module from the active policy, surfacing as
+# "module <name> still not loaded".
+failed=0
+for name in "${modules[@]}"; do
+    if [ ! -f "${name}.pp" ]; then
+        continue
+    fi
+
+    if ! semodule -i "${name}.pp"; then
+        echo "ERROR: semodule -i failed for ${name}" >&2
+        failed=1
+        continue
+    fi
+
+    if ! semodule -l | grep -qxF "${name}"; then
+        echo "ERROR: module ${name} still not loaded" >&2
+        failed=1
+        continue
+    fi
+
+    sha256sum "${name}.te" | cut -d' ' -f1 > "${name}.te.sha256"
+done
+
+exit "$failed"

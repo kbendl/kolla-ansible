@@ -1,0 +1,39 @@
+---
+kolla_selinux_policies_tacker:
+  tacker_server:
+    enabled: "{{ enable_tacker | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Tacker Server (NFV Orchestration)"
+    domain: "kolla_tacker_server_t"
+    exec_type: "kolla_tacker_server_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type proc_t;"
+      - "type mysqld_port_t;"
+      - "type amqp_port_t;"
+      - "class tcp_socket { name_bind name_connect };"
+      - "class file { read open getattr };"
+    allow_rules:
+      - "allow kolla_tacker_server_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_tacker_server_t mysqld_port_t:tcp_socket name_connect;"
+      - "allow kolla_tacker_server_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_tacker_server_t proc_t:file { read open getattr };"
+
+  tacker_conductor:
+    enabled: "{{ enable_tacker | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Tacker Conductor"
+    domain: "kolla_tacker_conductor_t"
+    exec_type: "kolla_tacker_conductor_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type proc_t;"
+      - "type amqp_port_t;"
+      - "class tcp_socket { name_connect };"
+      - "class file { read open getattr };"
+    allow_rules:
+      - "allow kolla_tacker_conductor_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_tacker_conductor_t proc_t:file { read open getattr };"

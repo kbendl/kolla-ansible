@@ -1,0 +1,179 @@
+---
+kolla_selinux_policies_designate:
+  designate_api:
+    _helpers:
+      - designate_bootstrap
+    enabled: "{{ enable_designate | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Designate API service"
+    domain: "kolla_designate_api_t"
+    exec_type: "kolla_designate_api_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type proc_t;"
+      - "type mysqld_port_t;"
+      - "type memcache_port_t;"
+      - "type dns_port_t;"
+      - "type ephemeral_port_t;"
+      - "type tor_port_t;"
+      - "type commplex_main_port_t;"
+      - "type amqp_port_t;"
+      - "class tcp_socket { name_bind name_connect };"
+      - "class file { read open getattr };"
+    allow_rules:
+      - "allow kolla_designate_api_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_designate_api_t mysqld_port_t:tcp_socket name_connect;"
+      - "allow kolla_designate_api_t memcache_port_t:tcp_socket name_connect;"
+      - "allow kolla_designate_api_t dns_port_t:tcp_socket name_connect;"
+      - "allow kolla_designate_api_t ephemeral_port_t:tcp_socket name_connect;"
+      - "allow kolla_designate_api_t tor_port_t:tcp_socket name_connect;"
+      - "allow kolla_designate_api_t commplex_main_port_t:tcp_socket name_connect;"
+      - "allow kolla_designate_api_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_designate_api_t proc_t:file { read open getattr };"
+
+  designate_backend_bind9:
+    enabled: "{{ enable_designate | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Designate BIND9 backend"
+    domain: "kolla_designate_backend_bind9_t"
+    exec_type: "kolla_designate_backend_bind9_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type dns_port_t;"
+      - "type proc_t;"
+      - "class capability { net_bind_service };"
+      - "class tcp_socket { name_bind name_connect listen node_bind };"
+      - "class udp_socket { name_bind node_bind };"
+      - "class file { read open getattr };"
+      - "class netlink_tcpdiag_socket { nlmsg_read };"
+      - "type node_t;"
+      - "type rndc_port_t;"
+    allow_rules:
+      - "allow kolla_designate_backend_bind9_t self:capability net_bind_service;"
+      - "allow kolla_designate_backend_bind9_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_designate_backend_bind9_t dns_port_t:udp_socket name_bind;"
+      - "allow kolla_designate_backend_bind9_t proc_t:file { read open getattr };"
+      - "allow kolla_designate_backend_bind9_t self:netlink_tcpdiag_socket nlmsg_read;"
+      - "allow kolla_designate_backend_bind9_t dns_port_t:tcp_socket name_bind;"
+      - "allow kolla_designate_backend_bind9_t self:tcp_socket listen;"
+      - "allow kolla_designate_backend_bind9_t node_t:tcp_socket node_bind;"
+      - "allow kolla_designate_backend_bind9_t node_t:udp_socket node_bind;"
+      - "allow kolla_designate_backend_bind9_t rndc_port_t:tcp_socket name_bind;"
+
+  designate_central:
+    enabled: "{{ enable_designate | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Designate Central service"
+    domain: "kolla_designate_central_t"
+    exec_type: "kolla_designate_central_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type proc_t;"
+      - "type amqp_port_t;"
+      - "type mysqld_port_t;"
+      - "class tcp_socket { name_connect };"
+      - "class file { read open getattr };"
+      - "class netlink_tcpdiag_socket { nlmsg_read };"
+      - "type unlabeled_t;"
+    allow_rules:
+      - "allow kolla_designate_central_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_designate_central_t mysqld_port_t:tcp_socket name_connect;"
+      - "allow kolla_designate_central_t proc_t:file { read open getattr };"
+      - "allow kolla_designate_central_t self:netlink_tcpdiag_socket nlmsg_read;"
+      - "allow kolla_designate_central_t unlabeled_t:tcp_socket { getattr read setopt write };"
+
+  designate_mdns:
+    enabled: "{{ enable_designate | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Designate mDNS service"
+    domain: "kolla_designate_mdns_t"
+    exec_type: "kolla_designate_mdns_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type proc_t;"
+      - "class tcp_socket { name_bind name_connect };"
+      - "class udp_socket { name_bind };"
+      - "class file { read open getattr };"
+      - "class netlink_tcpdiag_socket { nlmsg_read };"
+      - "type amqp_port_t;"
+      - "type unlabeled_t;"
+    allow_rules:
+      - "allow kolla_designate_mdns_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_designate_mdns_t port_t:udp_socket name_bind;"
+      - "allow kolla_designate_mdns_t proc_t:file { read open getattr };"
+      - "allow kolla_designate_mdns_t self:netlink_tcpdiag_socket nlmsg_read;"
+      - "allow kolla_designate_mdns_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_designate_mdns_t unlabeled_t:tcp_socket { getattr read setopt write };"
+
+  designate_producer:
+    enabled: "{{ enable_designate | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Designate Producer"
+    domain: "kolla_designate_producer_t"
+    exec_type: "kolla_designate_producer_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type proc_t;"
+      - "type amqp_port_t;"
+      - "class tcp_socket { name_connect };"
+      - "class file { read open getattr };"
+      - "class netlink_tcpdiag_socket { nlmsg_read };"
+      - "type redis_port_t;"
+      - "type unlabeled_t;"
+    allow_rules:
+      - "allow kolla_designate_producer_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_designate_producer_t proc_t:file { read open getattr };"
+      - "allow kolla_designate_producer_t self:netlink_tcpdiag_socket nlmsg_read;"
+      - "allow kolla_designate_producer_t redis_port_t:tcp_socket name_connect;"
+      - "allow kolla_designate_producer_t unlabeled_t:tcp_socket { getattr read setopt write };"
+
+  designate_sink:
+    enabled: "{{ enable_designate | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Designate Sink"
+    domain: "kolla_designate_sink_t"
+    exec_type: "kolla_designate_sink_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type proc_t;"
+      - "type amqp_port_t;"
+      - "class tcp_socket { name_connect };"
+      - "class file { read open getattr };"
+    allow_rules:
+      - "allow kolla_designate_sink_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_designate_sink_t proc_t:file { read open getattr };"
+
+  designate_worker:
+    enabled: "{{ enable_designate | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Designate Worker"
+    domain: "kolla_designate_worker_t"
+    exec_type: "kolla_designate_worker_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type proc_t;"
+      - "type amqp_port_t;"
+      - "type mysqld_port_t;"
+      - "class tcp_socket { name_connect node_bind };"
+      - "class file { read open getattr ioctl };"
+      - "class netlink_tcpdiag_socket { nlmsg_read };"
+      - "type node_t;"
+      - "type unlabeled_t;"
+    allow_rules:
+      - "allow kolla_designate_worker_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_designate_worker_t mysqld_port_t:tcp_socket name_connect;"
+      - "allow kolla_designate_worker_t proc_t:file { read open getattr };"
+      - "allow kolla_designate_worker_t self:netlink_tcpdiag_socket nlmsg_read;"
+      - "allow kolla_designate_worker_t node_t:tcp_socket node_bind;"
+      - "allow kolla_designate_worker_t proc_t:file ioctl;"
+      - "allow kolla_designate_worker_t unlabeled_t:tcp_socket { getattr read setopt write };"

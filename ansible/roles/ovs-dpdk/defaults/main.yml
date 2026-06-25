@@ -8,6 +8,7 @@ ovsdpdk_services:
     container_name: "ovsdpdk_db"
     image: "{{ ovsdpdk_db_image_full }}"
     enabled: "{{ neutron_plugin_agent in ['openvswitch'] }}"
+    privileged: "{{ not ovsdpdk_selinux_enable | bool }}"
     host_in_groups: >-
       {{
       inventory_hostname in groups['compute']
@@ -22,7 +23,10 @@ ovsdpdk_services:
     container_name: "ovsdpdk_vswitchd"
     image: "{{ ovsdpdk_vswitchd_image_full }}"
     enabled: "{{ neutron_plugin_agent in ['openvswitch'] }}"
-    privileged: true
+    privileged: "{{ not ovsdpdk_selinux_enable | bool }}"
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
     host_in_groups: >-
       {{
       inventory_hostname in groups['compute']
@@ -89,3 +93,8 @@ ovsdpdk_vswitchd_default_volumes:
 ovsdpdk_extra_volumes: "{{ default_extra_volumes }}"
 ovsdpdk_db_extra_volumes: "{{ ovsdpdk_extra_volumes }}"
 ovsdpdk_vswitchd_extra_volumes: "{{ ovsdpdk_extra_volumes }}"
+
+####################
+# Enable SELinux
+####################
+ovsdpdk_selinux_enable: "{{ kolla_ovsdpdk_selinux_enable | default(true) | bool }}"

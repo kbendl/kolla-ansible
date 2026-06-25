@@ -1,0 +1,40 @@
+---
+kolla_selinux_policies_fluentd:
+  fluentd:
+    enabled: "{{ enable_fluentd | default(true) | bool }}"
+    groups:
+      - "common"
+    description: "SELinux domain for Fluentd Log Shipper"
+    domain: "kolla_fluentd_t"
+    exec_type: "kolla_fluentd_exec_t"
+    requires:
+      - "type auditd_log_t;"
+      - "type container_runtime_t;"
+      - "type http_port_t;"
+      - "type port_t;"
+      - "type var_log_t;"
+      - "type wap_wsp_port_t;"
+      - "class dir { read search getattr watch };"
+      - "class file { read open getattr };"
+      - "class tcp_socket { name_bind name_connect listen node_bind };"
+      - "class udp_socket { name_bind node_bind };"
+      - "type node_t;"
+      - "type proc_t;"
+      - "type unreserved_port_t;"
+
+    allow_rules:
+      - "allow kolla_fluentd_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_fluentd_t wap_wsp_port_t:tcp_socket name_connect;"
+      - "allow kolla_fluentd_t var_log_t:dir { read search getattr };"
+      - "allow kolla_fluentd_t var_log_t:file { read open getattr };"
+      # Explicit access to the host audit logs for OpenSearch centralization
+      - "allow kolla_fluentd_t auditd_log_t:dir { read search getattr };"
+      - "allow kolla_fluentd_t auditd_log_t:file { read open getattr };"
+      - "allow kolla_fluentd_t http_port_t:tcp_socket name_connect;"
+      - "allow kolla_fluentd_t self:tcp_socket listen;"
+      - "allow kolla_fluentd_t node_t:tcp_socket node_bind;"
+      - "allow kolla_fluentd_t node_t:udp_socket node_bind;"
+      - "allow kolla_fluentd_t proc_t:file { open read };"
+      - "allow kolla_fluentd_t unreserved_port_t:tcp_socket name_bind;"
+      - "allow kolla_fluentd_t unreserved_port_t:udp_socket name_bind;"
+      - "allow kolla_fluentd_t var_log_t:dir watch;"

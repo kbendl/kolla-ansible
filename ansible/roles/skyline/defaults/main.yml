@@ -5,6 +5,7 @@ skyline_services:
     group: skyline-apiserver
     enabled: true
     image: "{{ skyline_apiserver_image_full }}"
+    privileged: "{{ not skyline_selinux_enable | bool }}"
     volumes: "{{ skyline_apiserver_default_volumes + skyline_apiserver_extra_volumes }}"
     dimensions: "{{ skyline_apiserver_dimensions }}"
     healthcheck: "{{ skyline_apiserver_healthcheck }}"
@@ -33,6 +34,7 @@ skyline_services:
     group: skyline-console
     enabled: true
     image: "{{ skyline_console_image_full }}"
+    privileged: "{{ not skyline_selinux_enable | bool }}"
     volumes: "{{ skyline_console_default_volumes + skyline_console_extra_volumes }}"
     dimensions: "{{ skyline_console_dimensions }}"
     healthcheck: "{{ skyline_console_healthcheck }}"
@@ -225,3 +227,8 @@ skyline_database_enable_tls_internal: "{{ database_enable_tls_internal | bool }}
 # Copy certificates
 ###################
 skyline_copy_certs: "{{ kolla_copy_ca_into_containers | bool or skyline_enable_tls_backend | bool or skyline_database_enable_tls_internal | bool }}"
+
+####################
+# Enable SELinux
+####################
+skyline_selinux_enable: "{{ kolla_skyline_selinux_enable | default(true) | bool }}"

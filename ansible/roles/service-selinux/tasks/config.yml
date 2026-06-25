@@ -1,0 +1,5 @@
+---
+# config setup for service-selinux
+- name: Checking systems for selinux avc denied messages
+  ansible.builtin.include_tasks:
+    file: deploy.yml

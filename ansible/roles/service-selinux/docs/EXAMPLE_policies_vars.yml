@@ -1,0 +1,147 @@
+---
+kolla_selinux_policies_prometheus:
+  # Changed key from 'prometheus_server' to 'prometheus' to fix the output filename
+  prometheus:
+    enabled: "{{ enable_prometheus | default(true) | bool }}"
+    # Changed 'controllers' to 'control' to match Kolla's internal inventory mapping
+    groups:
+      - "monitoring"
+      - "controllers"
+      - "control"
+
+    description: "SELinux domain for Prometheus Time-Series Database"
+    domain: "kolla_prometheus_t"
+    exec_type: "kolla_prometheus_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type node_t;"
+      # Requires both bind (listening on 9090) and connect (scraping targets)
+      - "class tcp_socket { name_bind name_connect node_bind };"
+      - "class file { read open getattr };"
+      - "class dir { search };"
+      # - "class process { setrlimit };"
+    allow_rules:
+      # Allow Prometheus to listen for incoming queries (e.g., from Grafana)
+      - "allow kolla_prometheus_t port_t:tcp_socket name_bind;"
+      - "allow kolla_prometheus_t node_t:tcp_socket node_bind;"
+      # Allow Prometheus to initiate outbound connections to scrape endpoints across the cluster
+      - "allow kolla_prometheus_t port_t:tcp_socket name_connect;"
+
+  prometheus_node_exporter:
+    enabled: "{{ enable_prometheus_node_exporter | default(true) | bool }}"
+    # Node exporter runs everywhere, 'compute', 'control', 'network', 'storage'
+    # Kolla uses 'baremetal' or 'common' for all nodes, but let's list the specific targets
+    groups:
+      - "seed"
+      - "prometheus-node-exporter"
+
+    description: "SELinux domain for Prometheus Node Exporter"
+    domain: "kolla_node_exporter_t"
+    exec_type: "kolla_node_exporter_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type proc_t;"
+      - "type sysfs_t;"
+      - "class tcp_socket { name_bind name_connect };"
+      - "class capability { dac_read_search sys_ptrace sys_admin };"
+      - "class dir { read getattr search };"
+      - "class file { read open getattr };"
+      - "class lnk_file { read getattr };"
+    allow_rules:
+    # Allow the service to bind to its default port (9100)
+      - "allow kolla_node_exporter_t port_t:tcp_socket { name_bind listen accept name_connect };"
+    # Allow the process to read system metrics from /proc and /sys
+      - "allow kolla_node_exporter_t self:capability { dac_read_search sys_ptrace sys_admin };"
+      - "allow kolla_node_exporter_t proc_t:dir { read getattr search };"
+      - "allow kolla_node_exporter_t proc_t:file { read open getattr };"
+      - "allow kolla_node_exporter_t proc_t:lnk_file { read getattr };"
+      - "allow kolla_node_exporter_t sysfs_t:dir { read getattr search };"
+      - "allow kolla_node_exporter_t sysfs_t:file { read open getattr };"
+      - "allow kolla_node_exporter_t sysfs_t:lnk_file { read getattr };"
+
+  prometheus_alertmanager:
+    enabled: "{{ enable_prometheus_alertmanager | default(true) | bool }}"
+    # Changed 'controllers' to 'control'
+    groups:
+      - "monitoring"
+    description: "SELinux domain for Prometheus Alertmanager"
+    domain: "kolla_alertmanager_t"
+    exec_type: "kolla_alertmanager_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "class tcp_socket { name_bind name_connect };"
+    allow_rules:
+      - "allow kolla_alertmanager_t port_t:tcp_socket { name_bind name_connect };"
+
+  # prometheus_cadvisor
+  # is part of the "telemetry" stack, but adding it here.
+  prometheus_cadvisor:
+    enabled: "{{ enable_cadvisor | default(true) | bool }}"
+    # cAdvisor must run on every node running containers across the se-- cluster
+    groups:
+      - "controllers"
+      - "control"
+    description: "SELinux domain for Prometheus cAdvisor Telemetry Agent"
+    domain: "kolla_cadvisor_t"
+    exec_type: "kolla_cadvisor_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type proc_t;"
+      - "type sysfs_t;"
+      - "type var_run_t;"
+      - "type container_var_lib_t;"  # Covers /var/lib/docker or /var/lib/containers
+      - "class tcp_socket { name_bind name_connect };"
+      # Highly privileged capabilities required to inspect neighbor container resource usage
+      - "class capability { dac_read_search sys_ptrace sys_admin };"
+      - "class dir { read getattr search };"
+      - "class file { read open getattr };"
+      - "class lnk_file { read getattr };"
+      - "class sock_file { write };"
+    allow_rules:
+      # Bind to the cAdvisor port for Prometheus scraping
+      - "allow kolla_cadvisor_t port_t:tcp_socket { name_bind name_connect };"
+
+      # Core privileges to read host OS process and cgroup data
+      - "allow kolla_cadvisor_t self:capability { dac_read_search sys_ptrace sys_admin };"
+
+      # Deep read access to /proc and /sys for hardware/kernel metrics
+      - "allow kolla_cadvisor_t proc_t:dir { read getattr search };"
+      - "allow kolla_cadvisor_t proc_t:file { read open getattr };"
+      - "allow kolla_cadvisor_t proc_t:lnk_file { read getattr };"
+      - "allow kolla_cadvisor_t sysfs_t:dir { read getattr search };"
+      - "allow kolla_cadvisor_t sysfs_t:file { read open getattr };"
+      - "allow kolla_cadvisor_t sysfs_t:lnk_file { read getattr };"
+
+      # Access to container engine sockets and storage backends
+      - "allow kolla_cadvisor_t var_run_t:dir search;"
+      - "allow kolla_cadvisor_t var_run_t:sock_file write;"
+      - "allow kolla_cadvisor_t container_var_lib_t:dir { read getattr search };"
+
+  prometheus_libvirt_exporter:
+    enabled: "{{ enable_prometheus_libvirt_exporter | default(true) | bool }}"
+    # Runs exclusively on nodes acting as hypervisors (compute plane)
+    groups:
+      - "compute"
+      - "controllers"
+      - "control"
+    description: "SELinux domain for Prometheus Libvirt Exporter"
+    domain: "kolla_prometheus_libvirt_t"
+    exec_type: "kolla_prometheus_libvirt_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      # Standard SELinux type for libvirt runtime sockets
+      - "type virt_var_run_t;"
+      - "class tcp_socket { name_bind name_connect };"
+      - "class dir { getattr search };"
+      - "class sock_file { getattr write };"
+    allow_rules:
+      # Bind to the exporter port for Prometheus server scraping
+      - "allow kolla_prometheus_libvirt_t port_t:tcp_socket { name_bind name_connect };"
+      # Traverse the /var/run/libvirt directory and write to the libvirt socket
+      - "allow kolla_prometheus_libvirt_t virt_var_run_t:dir { getattr search };"
+      - "allow kolla_prometheus_libvirt_t virt_var_run_t:sock_file { getattr write };"

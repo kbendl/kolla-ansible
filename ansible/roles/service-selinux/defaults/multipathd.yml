@@ -1,0 +1,24 @@
+---
+kolla_selinux_policies_multipathd:
+  multipathd:
+    enabled: "{{ enable_multipathd | default(false) | bool }}"
+    groups:
+      - "compute"
+    description: "SELinux domain for Multipath I/O daemon"
+    domain: "kolla_multipathd_t"
+    exec_type: "kolla_multipathd_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type proc_t;"
+      - "type sysfs_t;"
+      - "type device_t;"
+      - "class capability { sys_admin };"
+      - "class file { read open getattr ioctl };"
+      - "class dir { read search getattr };"
+      - "class chr_file { read write open ioctl getattr };"
+    allow_rules:
+      - "allow kolla_multipathd_t self:capability sys_admin;"
+      - "allow kolla_multipathd_t proc_t:file { read open getattr };"
+      - "allow kolla_multipathd_t sysfs_t:dir { read search getattr };"
+      - "allow kolla_multipathd_t sysfs_t:file { read open getattr };"
+      - "allow kolla_multipathd_t device_t:chr_file { read write open ioctl getattr };"

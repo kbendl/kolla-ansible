@@ -5,6 +5,7 @@ heat_services:
     group: heat-api
     enabled: true
     image: "{{ heat_api_image_full }}"
+    privileged: "{{ not heat_selinux_enable | bool }}"
     volumes: "{{ heat_api_default_volumes + heat_api_extra_volumes }}"
     dimensions: "{{ heat_api_dimensions }}"
     healthcheck: "{{ heat_api_healthcheck }}"
@@ -36,6 +37,7 @@ heat_services:
     group: heat-api-cfn
     enabled: true
     image: "{{ heat_api_cfn_image_full }}"
+    privileged: "{{ not heat_selinux_enable | bool }}"
     volumes: "{{ heat_api_cfn_default_volumes + heat_api_cfn_extra_volumes }}"
     dimensions: "{{ heat_api_cfn_dimensions }}"
     healthcheck: "{{ heat_api_cfn_healthcheck }}"
@@ -67,6 +69,7 @@ heat_services:
     group: heat-engine
     enabled: true
     image: "{{ heat_engine_image_full }}"
+    privileged: "{{ not heat_selinux_enable | bool }}"
     volumes: "{{ heat_engine_default_volumes + heat_engine_extra_volumes }}"
     dimensions: "{{ heat_engine_dimensions }}"
     healthcheck: "{{ heat_engine_healthcheck }}"
@@ -273,3 +276,8 @@ heat_database_enable_tls_internal: "{{ database_enable_tls_internal | bool }}"
 # Copy certificates
 ###################
 heat_copy_certs: "{{ kolla_copy_ca_into_containers | bool or heat_enable_tls_backend | bool or heat_database_enable_tls_internal | bool }}"
+
+####################
+# Enable SELinux
+####################
+heat_selinux_enable: "{{ kolla_heat_selinux_enable | default(true) | bool }}"

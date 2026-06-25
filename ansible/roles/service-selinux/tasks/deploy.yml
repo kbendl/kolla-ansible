@@ -1,0 +1,179 @@
+---
+# - name: Bootstrap service-selinux requirements
+#   ansible.builtin.import_tasks: bootstrap.yml
+#
+# - name: Import tasks from version-check.yml
+#   ansible.builtin.import_tasks: version-check.yml
+
+- name: Configure selinux policy on hosts
+  ansible.builtin.import_tasks: bootstrap.yml
+
+- name: Check containers for selinux security_opt domains
+  ansible.builtin.import_tasks: check-containers.yml
+
+- name: Apply SELinux configuration
+  when:
+    - enable_selinux | default(true) | bool
+    - ansible_os_family | default('') == 'RedHat'
+    - ansible_distribution_major_version | default('0') | int >= 9
+  block:
+    - name: Discover available SELinux service policy files
+      ansible.builtin.set_fact:
+        _selinux_available_services: "{{ query('fileglob', role_path ~ '/defaults/*.yml')
+          | map('basename')
+          | map('splitext')
+          | map('first')
+          | reject('equalto', 'main')
+          | list }}"
+
+    - name: Ensure SELinux python dependencies are installed
+      become: true
+      ansible.builtin.dnf:
+        name:
+          - policycoreutils-python-utils
+          - checkpolicy
+          - setroubleshoot-server
+          - setools-console
+          - selinux-policy-devel
+        state: present
+      when: not selinux_bootstrap_done | default(false) | bool
+
+    - name: Enforce SELinux State
+      # permissive while testing
+      become: true
+      ansible.posix.selinux:
+        policy: targeted
+        state: permissive
+
+    - name: Ensure Kolla SELinux profile build directory exists
+      become: true
+      ansible.builtin.file:
+        path: "{{ selinux_profile_build_dir }}"
+        state: directory
+        mode: '0750'
+        owner: "{{ ansible_user_id }}"
+        group: "{{ ansible_user_id }}"
+
+    - name: Determine the active SELinux services to process
+      ansible.builtin.set_fact:
+        active_selinux_services: "{{ limit_selinux_services | intersect(_selinux_available_services)
+          if limit_selinux_services is defined
+          else _selinux_available_services }}"
+
+    - name: Ingest centralized SELinux variables for active services
+      ansible.builtin.include_vars:
+        file: "{{ role_path }}/defaults/{{ item }}.yml"
+      loop: "{{ active_selinux_services }}"
+      when:
+        - "(role_path ~ '/defaults/' ~ item ~ '.yml') is file"
+        - "vars['kolla_selinux_policies_' ~ item] is not defined"
+
+    - name: Give priority to decentralized SELinux variables
+      ansible.builtin.include_vars:
+        file: "{{ role_path | dirname }}/{{ item }}/defaults/selinux.yml"
+      loop: "{{ active_selinux_services }}"
+      when:
+        - "(role_path | dirname ~ '/' ~ item ~ '/defaults/selinux.yml') is file"
+        - "vars['kolla_selinux_policies_' ~ item] is not defined"
+
+    - name: Generate SELinux Type Enforcement (.te) files for all active services
+      ansible.builtin.include_tasks:
+        file: compile_service.yml
+        apply:
+          tags:
+            - selinux
+      loop: "{{ active_selinux_services }}"
+      loop_control:
+        loop_var: current_selinux_service
+      when:
+        - vars['kolla_selinux_policies_' ~ current_selinux_service] is defined
+
+    - name: Record compile time start time
+      ansible.builtin.set_fact:
+        secompile_start_time: "{{ lookup('pipe', 'date +%s') | int }}"
+
+    - name: Compile changed SELinux policies (checksum-cached, parallel)
+      ansible.builtin.include_tasks: compile_all.yml
+
+    # ----------------------------------------------------
+    # Install only modules that were recompiled, plus any
+    # orphaned .pp whose module is not yet loaded (recovery
+    # from a previous partially-failed deploy).
+    # Checksums are persisted AFTER semodule -i succeeds,
+    # ensuring the next deploy won't skip a module that was
+    # compiled but never loaded.
+    # ----------------------------------------------------
+    - name: Identify modules that exist on disk but are not loaded
+      become: true
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          shopt -s nullglob
+          cd "{{ selinux_profile_build_dir }}"
+          loaded=$(semodule -l 2>/dev/null | awk '{print $1}')
+          for pp in kolla_*.pp; do
+            modname="${pp%.pp}"
+            if ! echo "$loaded" | grep -qxF "$modname"; then
+              echo "$modname"
+            fi
+          done
+      register: _missing_modules
+      changed_when: false
+
+    - name: Build final install list (recompiled + not-yet-loaded)
+      ansible.builtin.set_fact:
+        _install_names: >-
+          {{ (_recompile_names | default([]) + _missing_modules.stdout_lines | default([]))
+             | unique | list }}
+
+    - name: Render install script for SELinux policy modules
+      become: true
+      ansible.builtin.template:
+        src: install_policy_modules.sh.j2
+        dest: "{{ selinux_profile_build_dir }}/_install_modules.sh"
+        mode: "0755"
+      when: _install_names | length > 0
+
+    - name: Install SELinux policy modules and persist checksums
+      become: true
+      ansible.builtin.command: "{{ selinux_profile_build_dir }}/_install_modules.sh"
+      register: _selinux_install
+      changed_when: true
+      when: _install_names | length > 0
+
+    - name: Report no modules needed installation
+      ansible.builtin.debug:
+        msg: >-
+          All SELinux policy modules are current and loaded
+          ({{ _recompile_names | default([]) | length }} recompiled,
+          {{ _missing_modules.stdout_lines | default([]) | length }} missing from kernel).
+      when: _install_names | length == 0
+    # ----------------------------------------------------
+
+    - name: Record end time and calculate delta
+      ansible.builtin.set_fact:
+        secompile_end_time: "{{ lookup('pipe', 'date +%s') | int }}"
+
+    - name: Compute minutes and seconds
+      ansible.builtin.set_fact:
+        total_secs: "{{ secompile_end_time | int - secompile_start_time | int }}"
+        dur_mins: "{{ ((secompile_end_time | int - secompile_start_time | int) / 60) | int }}"
+        dur_secs: "{{ ((secompile_end_time | int - secompile_start_time | int) % 60) | int }}"
+
+    - name: Debug print execution duration
+      ansible.builtin.debug:
+        msg: |
+          |
+          |--- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+          |
+          |        SELinux module compile time
+          |
+          |
+          | Duration: {{ dur_mins }} minutes {{ dur_secs }} seconds.
+          | Total time: {{ total_secs }} seconds
+          |
+          |
+          |
+          |
+          |--- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+          |

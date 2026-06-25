@@ -1,0 +1,33 @@
+---
+kolla_selinux_policies_collectd:
+  collectd:
+    enabled: "{{ enable_collectd | default(false) | bool }}"
+    groups:
+      - "compute"
+    description: "SELinux domain for collectd monitoring daemon"
+    domain: "kolla_collectd_t"
+    exec_type: "kolla_collectd_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type proc_t;"
+      - "type sysfs_t;"
+      - "type device_t;"
+      - "type port_t;"
+      - "class capability { sys_admin };"
+      - "class file { read open getattr };"
+      - "class dir { read search getattr };"
+      - "class tcp_socket { name_connect };"
+      - "class chr_file { read open ioctl };"
+      - "type cpu_device_t;"
+      - "class capability { sys_rawio };"
+      - "class chr_file { read write getattr open ioctl };"
+
+    allow_rules:
+      - "allow kolla_collectd_t self:capability sys_admin;"
+      - "allow kolla_collectd_t proc_t:file { read open getattr };"
+      - "allow kolla_collectd_t sysfs_t:dir { read search getattr };"
+      - "allow kolla_collectd_t sysfs_t:file { read open getattr };"
+      - "allow kolla_collectd_t device_t:chr_file { read open ioctl };"
+      - "allow kolla_collectd_t port_t:tcp_socket name_connect;"
+      - "allow kolla_collectd_t self:capability sys_rawio;"
+      - "allow kolla_collectd_t cpu_device_t:chr_file { read write getattr open ioctl };"

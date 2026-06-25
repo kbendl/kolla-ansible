@@ -1,0 +1,6 @@
+---
+- name: Upgrade selinux system requirements
+  ansible.builtin.import_tasks: bootstrap.yml
+
+- name: Upgrade selinux policies
+  ansible.builtin.import_tasks: deploy.yml

@@ -1,0 +1,407 @@
+---
+
+kolla_selinux_policies_prometheus:
+  # Changed key from 'prometheus_server' to 'prometheus' to fix the output filename
+  prometheus:
+    enabled: "{{ enable_prometheus | default(true) | bool }}"
+    # Changed 'controllers' to 'control' to match Kolla's internal inventory mapping
+    groups:
+      - "monitoring"
+      - "control"
+    description: "SELinux domain for Prometheus Time-Series Database"
+    domain: "kolla_prometheus_t"
+    exec_type: "kolla_prometheus_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type node_t;"
+      - "type proc_t;"
+      - "type unreserved_port_t;"
+      - "type hplip_port_t;"
+      # Requires both bind (listening on 9090) and connect (scraping targets)
+      - "class tcp_socket { name_bind name_connect node_bind listen };"
+      - "class file { read open getattr };"
+      - "class dir { search };"
+      - "type tor_port_t;"
+      # - "class process { setrlimit };"
+    allow_rules:
+      # Allow Prometheus to listen for incoming queries (e.g., from Grafana)
+      - "allow kolla_prometheus_t port_t:tcp_socket name_bind;"
+      - "allow kolla_prometheus_t node_t:tcp_socket node_bind;"
+      # Allow Prometheus to initiate outbound connections to scrape endpoints across the cluster
+      - "allow kolla_prometheus_t port_t:tcp_socket name_connect;"
+      - "allow kolla_prometheus_t proc_t:file { read open getattr };"
+      - "allow kolla_prometheus_t unreserved_port_t:tcp_socket name_connect;"
+      - "allow kolla_prometheus_t hplip_port_t:tcp_socket name_connect;"
+      - "allow kolla_prometheus_t self:tcp_socket listen;"
+      - "allow kolla_prometheus_t tor_port_t:tcp_socket name_connect;"
+      - "allow kolla_prometheus_t unreserved_port_t:tcp_socket name_bind;"
+    interfaces:
+      # Docker generates label=type:kolla_prometheus_server_t from the
+      # container_name "prometheus_server", but our domain is kolla_prometheus_t.
+      - "typealias kolla_prometheus_t alias kolla_prometheus_server_t;"
+
+  prometheus_node_exporter:
+    enabled: "{{ enable_prometheus_node_exporter | default(true) | bool }}"
+    # Node exporter runs everywhere, 'compute', 'control', 'network', 'storage'
+    # Kolla uses 'baremetal' or 'common' for all nodes, but let's list the specific targets
+    groups:
+      - "seed"
+      - "prometheus-node-exporter"
+
+    description: "SELinux domain for Prometheus Node Exporter"
+    domain: "kolla_node_exporter_t"
+    exec_type: "kolla_node_exporter_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type proc_t;"
+      - "type sysfs_t;"
+      - "type proc_mdstat_t;"
+      - "class tcp_socket { name_bind name_connect };"
+      - "class capability { dac_read_search sys_ptrace sys_admin };"
+      - "class dir { read getattr search };"
+      - "class file { read open getattr };"
+      - "class lnk_file { read getattr };"
+    allow_rules:
+    # Allow the service to bind to its default port (9100)
+      - "allow kolla_node_exporter_t port_t:tcp_socket { name_bind listen accept name_connect };"
+    # Allow the process to read system metrics from /proc and /sys
+      - "allow kolla_node_exporter_t self:capability { dac_read_search sys_ptrace sys_admin };"
+      - "allow kolla_node_exporter_t proc_t:dir { read getattr search };"
+      - "allow kolla_node_exporter_t proc_t:file { read open getattr };"
+      - "allow kolla_node_exporter_t proc_t:lnk_file { read getattr };"
+      - "allow kolla_node_exporter_t sysfs_t:dir { read getattr search };"
+      - "allow kolla_node_exporter_t sysfs_t:file { read open getattr };"
+      - "allow kolla_node_exporter_t sysfs_t:lnk_file { read getattr };"
+      # /proc/mdstat (RAID/md device status)
+      - "allow kolla_node_exporter_t proc_mdstat_t:file { read open getattr };"
+    interfaces:
+      # Docker generates label=type:kolla_prometheus_node_exporter_t from the
+      # container_name "prometheus_node_exporter", but our domain is kolla_node_exporter_t.
+      - "typealias kolla_node_exporter_t alias kolla_prometheus_node_exporter_t;"
+
+  prometheus_mysqld_exporter:
+    enabled: "{{ enable_prometheus_mysqld_exporter | default(true) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Prometheus MySQL Exporter"
+    domain: "kolla_prometheus_mysqld_exporter_t"
+    exec_type: "kolla_prometheus_mysqld_exporter_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type proc_t;"
+      - "type mysqld_port_t;"
+      - "class tcp_socket { name_bind name_connect };"
+      - "class file { read open getattr };"
+    allow_rules:
+      - "allow kolla_prometheus_mysqld_exporter_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_prometheus_mysqld_exporter_t proc_t:file { read open getattr };"
+      - "allow kolla_prometheus_mysqld_exporter_t mysqld_port_t:tcp_socket name_connect;"
+
+  prometheus_memcached_exporter:
+    enabled: "{{ enable_prometheus_memcached_exporter | default(true) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Prometheus Memcached Exporter"
+    domain: "kolla_prometheus_memcached_exporter_t"
+    exec_type: "kolla_prometheus_memcached_exporter_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type proc_t;"
+      - "type memcache_port_t;"
+      - "type node_t;"
+      - "type tor_port_t;"
+      - "class tcp_socket { name_bind name_connect node_bind listen };"
+      - "class file { read open getattr };"
+    allow_rules:
+      - "allow kolla_prometheus_memcached_exporter_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_prometheus_memcached_exporter_t proc_t:file { read open getattr };"
+      - "allow kolla_prometheus_memcached_exporter_t memcache_port_t:tcp_socket name_connect;"
+      - "allow kolla_prometheus_memcached_exporter_t node_t:tcp_socket node_bind;"
+      - "allow kolla_prometheus_memcached_exporter_t tor_port_t:tcp_socket name_bind;"
+      - "allow kolla_prometheus_memcached_exporter_t self:tcp_socket listen;"
+
+  prometheus_valkey_exporter:
+    enabled: "{{ enable_prometheus_valkey_exporter | default(false) | bool }}"
+    groups:
+      - "prometheus-valkey-exporter"
+    description: "SELinux domain for Prometheus Valkey Exporter"
+    domain: "kolla_prometheus_valkey_exporter_t"
+    exec_type: "kolla_prometheus_valkey_exporter_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type proc_t;"
+      - "type redis_port_t;"
+      - "type node_t;"
+      - "type unreserved_port_t;"
+      - "class tcp_socket { name_bind name_connect node_bind listen };"
+      - "class file { read open getattr };"
+    allow_rules:
+      - "allow kolla_prometheus_valkey_exporter_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_prometheus_valkey_exporter_t proc_t:file { read open getattr };"
+      - "allow kolla_prometheus_valkey_exporter_t redis_port_t:tcp_socket name_connect;"
+      - "allow kolla_prometheus_valkey_exporter_t node_t:tcp_socket node_bind;"
+      - "allow kolla_prometheus_valkey_exporter_t unreserved_port_t:tcp_socket name_bind;"
+      - "allow kolla_prometheus_valkey_exporter_t self:tcp_socket listen;"
+
+  prometheus_alertmanager:
+    enabled: "{{ enable_prometheus_alertmanager | default(true) | bool }}"
+    # Changed 'controllers' to 'control'
+    groups:
+      - "monitoring"
+    description: "SELinux domain for Prometheus Alertmanager"
+    domain: "kolla_alertmanager_t"
+    exec_type: "kolla_alertmanager_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type proc_t;"
+      - "type unreserved_port_t;"
+      - "class tcp_socket { name_bind name_connect };"
+      - "class file { read open getattr };"
+    allow_rules:
+      - "allow kolla_alertmanager_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_alertmanager_t proc_t:file { read open getattr };"
+      - "allow kolla_alertmanager_t unreserved_port_t:tcp_socket name_connect;"
+    interfaces:
+      # Docker generates label=type:kolla_prometheus_alertmanager_t from the
+      # container_name "prometheus_alertmanager", but our domain is kolla_alertmanager_t.
+      - "typealias kolla_alertmanager_t alias kolla_prometheus_alertmanager_t;"
+
+  # prometheus_cadvisor
+  # is part of the "telemetry" stack, but adding it here.
+  prometheus_cadvisor:
+    enabled: "{{ enable_cadvisor | default(true) | bool }}"
+    # cAdvisor must run on every node running containers across the se-- cluster
+    groups:
+      - "control"
+    description: "SELinux domain for Prometheus cAdvisor Telemetry Agent"
+    domain: "kolla_prometheus_cadvisor_t"
+    exec_type: "kolla_cadvisor_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type proc_t;"
+      - "type cgroup_t;"
+      - "type sysfs_t;"
+      - "type var_run_t;"
+      - "type container_var_lib_t;"  # Covers /var/lib/docker or /var/lib/containers
+      - "type container_var_run_t;"
+      - "type node_t;"
+      - "type unreserved_port_t;"
+      - "class tcp_socket { name_bind name_connect listen node_bind };"
+      # Highly privileged capabilities required to inspect neighbor container resource usage
+      - "class dir { read getattr search watch };"
+      - "class capability { dac_read_search sys_ptrace sys_admin };"
+      - "class file { read open getattr };"
+      - "class lnk_file { read getattr };"
+      - "class sock_file { write };"
+      - "class unix_stream_socket { connectto };"
+    allow_rules:
+      # Bind to the cAdvisor port for Prometheus scraping
+      - "allow kolla_prometheus_cadvisor_t port_t:tcp_socket { name_bind name_connect };"
+
+      # Core privileges to read host OS process and cgroup data
+      - "allow kolla_prometheus_cadvisor_t self:capability { dac_read_search sys_ptrace sys_admin };"
+
+      # Deep read access to /proc and /sys for hardware/kernel metrics
+      - "allow kolla_prometheus_cadvisor_t proc_t:dir { read getattr search };"
+      - "allow kolla_prometheus_cadvisor_t proc_t:file { read open getattr };"
+      - "allow kolla_prometheus_cadvisor_t proc_t:lnk_file { read getattr };"
+      - "allow kolla_prometheus_cadvisor_t sysfs_t:dir { read getattr search };"
+      - "allow kolla_prometheus_cadvisor_t sysfs_t:file { read open getattr };"
+      - "allow kolla_prometheus_cadvisor_t cgroup_t:dir watch;"
+      - "allow kolla_prometheus_cadvisor_t sysfs_t:lnk_file { read getattr };"
+
+      # Access to container engine sockets and storage backends
+      - "allow kolla_prometheus_cadvisor_t var_run_t:dir search;"
+      - "allow kolla_prometheus_cadvisor_t var_run_t:sock_file write;"
+      - "allow kolla_prometheus_cadvisor_t container_var_lib_t:dir { read getattr search };"
+      - "allow kolla_prometheus_cadvisor_t container_var_run_t:sock_file write;"
+      - "allow kolla_prometheus_cadvisor_t container_runtime_t:unix_stream_socket connectto;"
+      - "allow kolla_prometheus_cadvisor_t self:tcp_socket listen;"
+      - "allow kolla_prometheus_cadvisor_t node_t:tcp_socket node_bind;"
+      - "allow kolla_prometheus_cadvisor_t unreserved_port_t:tcp_socket name_bind;"
+    interfaces:
+      # container_name is 'prometheus_cadvisor', auto-label matches
+      # kolla_prometheus_cadvisor_t, the primary domain type.
+      - "typealias kolla_prometheus_cadvisor_t alias kolla_cadvisor_t;"
+
+  prometheus_libvirt_exporter:
+    enabled: "{{ enable_prometheus_libvirt_exporter | default(true) | bool }}"
+    # Runs exclusively on nodes acting as hypervisors (compute plane)
+    groups:
+      - "compute"
+      - "control"
+    description: "SELinux domain for Prometheus Libvirt Exporter"
+    domain: "kolla_prometheus_libvirt_exporter_t"
+    exec_type: "kolla_prometheus_libvirt_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type proc_t;"
+      # Standard SELinux type for libvirt runtime sockets
+      - "type var_run_t;"
+      - "type node_t;"
+      - "type unreserved_port_t;"
+      - "type kolla_nova_libvirt_t;"
+      - "class tcp_socket { name_bind name_connect listen node_bind };"
+      - "class dir { getattr search };"
+      - "class file { read open getattr };"
+      - "class sock_file { getattr write };"
+      - "class unix_stream_socket { connectto };"
+      - "type virt_var_run_t;"
+    allow_rules:
+      # Bind to the exporter port for Prometheus server scraping
+      - "allow kolla_prometheus_libvirt_exporter_t port_t:tcp_socket { name_bind name_connect };"
+      # Traverse the /var/run/libvirt directory and write to the libvirt socket
+      - "allow kolla_prometheus_libvirt_exporter_t var_run_t:dir { getattr search };"
+      - "allow kolla_prometheus_libvirt_exporter_t var_run_t:sock_file { getattr write };"
+      - "allow kolla_prometheus_libvirt_exporter_t proc_t:file { read open getattr };"
+      - "allow kolla_prometheus_libvirt_exporter_t self:tcp_socket listen;"
+      - "allow kolla_prometheus_libvirt_exporter_t node_t:tcp_socket node_bind;"
+      - "allow kolla_prometheus_libvirt_exporter_t unreserved_port_t:tcp_socket name_bind;"
+      - "allow kolla_prometheus_libvirt_exporter_t kolla_nova_libvirt_t:unix_stream_socket connectto;"
+      - "allow kolla_prometheus_libvirt_exporter_t virt_var_run_t:sock_file write;"
+    interfaces:
+      # container_name "prometheus_libvirt_exporter" now matches the primary
+      # domain kolla_prometheus_libvirt_exporter_t.  Alias preserved for
+      # backward compatibility.
+      - "typealias kolla_prometheus_libvirt_exporter_t alias kolla_prometheus_libvirt_t;"
+
+  prometheus_blackbox_exporter:
+    enabled: "{{ enable_prometheus_blackbox_exporter | default(false) | bool }}"
+    groups:
+      - "prometheus-blackbox-exporter"
+    description: "SELinux domain for Prometheus Blackbox Exporter"
+    domain: "kolla_prometheus_blackbox_exporter_t"
+    exec_type: "kolla_prometheus_blackbox_exporter_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type proc_t;"
+      - "type osapi_compute_port_t;"
+      - "type redis_port_t;"
+      - "type commplex_main_port_t;"
+      - "type glance_port_t;"
+      - "type amqp_port_t;"
+      - "type neutron_port_t;"
+      - "type unreserved_port_t;"
+      - "type soundd_port_t;"
+      - "type http_port_t;"
+      - "type ntop_port_t;"
+      - "type wap_wsp_port_t;"
+      - "type tor_port_t;"
+      - "class tcp_socket { name_bind name_connect };"
+      - "class capability { net_raw };"
+      - "class file { read open getattr };"
+    allow_rules:
+      - "allow kolla_prometheus_blackbox_exporter_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_prometheus_blackbox_exporter_t self:capability net_raw;"
+      - "allow kolla_prometheus_blackbox_exporter_t proc_t:file { read open getattr };"
+      - "allow kolla_prometheus_blackbox_exporter_t osapi_compute_port_t:tcp_socket name_connect;"
+      - "allow kolla_prometheus_blackbox_exporter_t redis_port_t:tcp_socket name_connect;"
+      - "allow kolla_prometheus_blackbox_exporter_t commplex_main_port_t:tcp_socket name_connect;"
+      - "allow kolla_prometheus_blackbox_exporter_t glance_port_t:tcp_socket name_connect;"
+      - "allow kolla_prometheus_blackbox_exporter_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_prometheus_blackbox_exporter_t neutron_port_t:tcp_socket name_connect;"
+      - "allow kolla_prometheus_blackbox_exporter_t unreserved_port_t:tcp_socket name_connect;"
+      - "allow kolla_prometheus_blackbox_exporter_t soundd_port_t:tcp_socket name_connect;"
+      - "allow kolla_prometheus_blackbox_exporter_t http_port_t:tcp_socket name_connect;"
+      - "allow kolla_prometheus_blackbox_exporter_t ntop_port_t:tcp_socket name_connect;"
+      - "allow kolla_prometheus_blackbox_exporter_t wap_wsp_port_t:tcp_socket name_connect;"
+      - "allow kolla_prometheus_blackbox_exporter_t tor_port_t:tcp_socket name_connect;"
+
+  prometheus_openstack_exporter:
+    enabled: "{{ enable_prometheus_openstack_exporter | default(false) | bool }}"
+    groups:
+      - "prometheus-openstack-exporter"
+    description: "SELinux domain for Prometheus OpenStack Exporter"
+    domain: "kolla_prometheus_openstack_exporter_t"
+    exec_type: "kolla_prometheus_openstack_exporter_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type proc_t;"
+      - "type commplex_main_port_t;"
+      - "type unreserved_port_t;"
+      - "type glance_port_t;"
+      - "type neutron_port_t;"
+      - "type osapi_compute_port_t;"
+      - "type tor_port_t;"
+      - "class tcp_socket { name_bind name_connect listen node_bind };"
+      - "class file { read open getattr };"
+      - "type node_t;"
+    allow_rules:
+      - "allow kolla_prometheus_openstack_exporter_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_prometheus_openstack_exporter_t proc_t:file { read open getattr };"
+      - "allow kolla_prometheus_openstack_exporter_t commplex_main_port_t:tcp_socket name_connect;"
+      - "allow kolla_prometheus_openstack_exporter_t unreserved_port_t:tcp_socket name_connect;"
+      - "allow kolla_prometheus_openstack_exporter_t glance_port_t:tcp_socket name_connect;"
+      - "allow kolla_prometheus_openstack_exporter_t neutron_port_t:tcp_socket name_connect;"
+      - "allow kolla_prometheus_openstack_exporter_t osapi_compute_port_t:tcp_socket name_connect;"
+      - "allow kolla_prometheus_openstack_exporter_t tor_port_t:tcp_socket name_connect;"
+      - "allow kolla_prometheus_openstack_exporter_t self:tcp_socket listen;"
+      - "allow kolla_prometheus_openstack_exporter_t node_t:tcp_socket node_bind;"
+      - "allow kolla_prometheus_openstack_exporter_t unreserved_port_t:tcp_socket name_bind;"
+
+  prometheus_openstack_network_exporter:
+    enabled: "{{ enable_prometheus_openstack_network_exporter | default(false) | bool }}"
+    groups:
+      - "prometheus-openstack-network-exporter"
+    description: "SELinux domain for Prometheus OpenStack Network Exporter"
+    domain: "kolla_prometheus_openstack_network_exporter_t"
+    exec_type: "kolla_prometheus_openstack_network_exporter_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type proc_t;"
+      - "type container_var_run_t;"
+      - "type spc_t;"
+      - "type node_t;"
+      - "type unreserved_port_t;"
+      - "type kolla_openvswitch_vswitchd_t;"
+      - "type kolla_openvswitch_db_t;"
+      - "class tcp_socket { name_bind name_connect node_bind listen };"
+      - "class file { read open getattr };"
+      - "class dir { read getattr search };"
+      - "class sock_file { write };"
+      - "class unix_stream_socket { connectto };"
+    allow_rules:
+      - "allow kolla_prometheus_openstack_network_exporter_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_prometheus_openstack_network_exporter_t proc_t:file { read open getattr };"
+      - "allow kolla_prometheus_openstack_network_exporter_t container_var_run_t:file { read open getattr };"
+      - "allow kolla_prometheus_openstack_network_exporter_t container_var_run_t:sock_file write;"
+      - "allow kolla_prometheus_openstack_network_exporter_t container_var_run_t:dir { read getattr search };"
+      - "allow kolla_prometheus_openstack_network_exporter_t spc_t:dir { read getattr search };"
+      - "allow kolla_prometheus_openstack_network_exporter_t spc_t:file { read open getattr };"
+      - "allow kolla_prometheus_openstack_network_exporter_t node_t:tcp_socket node_bind;"
+      - "allow kolla_prometheus_openstack_network_exporter_t unreserved_port_t:tcp_socket name_bind;"
+      - "allow kolla_prometheus_openstack_network_exporter_t self:tcp_socket listen;"
+      - "allow kolla_prometheus_openstack_network_exporter_t kolla_openvswitch_vswitchd_t:dir read;"
+      - "allow kolla_prometheus_openstack_network_exporter_t kolla_openvswitch_vswitchd_t:file { read open };"
+      - "allow kolla_prometheus_openstack_network_exporter_t kolla_openvswitch_vswitchd_t:unix_stream_socket connectto;"
+      - "allow kolla_prometheus_openstack_network_exporter_t kolla_openvswitch_db_t:unix_stream_socket connectto;"
+
+  prometheus_elasticsearch_exporter:
+    enabled: "{{ enable_prometheus_elasticsearch_exporter | default(false) | bool }}"
+    groups:
+      - "prometheus-elasticsearch-exporter"
+    description: "SELinux domain for Prometheus Elasticsearch Exporter"
+    domain: "kolla_prometheus_elasticsearch_exporter_t"
+    exec_type: "kolla_prometheus_elasticsearch_exporter_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type proc_t;"
+      - "type wap_wsp_port_t;"
+      - "class tcp_socket { name_bind name_connect listen accept };"
+      - "class file { read open getattr };"
+    allow_rules:
+      - "allow kolla_prometheus_elasticsearch_exporter_t port_t:tcp_socket { name_bind listen accept name_connect };"
+      - "allow kolla_prometheus_elasticsearch_exporter_t proc_t:file { read open getattr };"
+      - "allow kolla_prometheus_elasticsearch_exporter_t wap_wsp_port_t:tcp_socket name_connect;"

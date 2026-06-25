@@ -1,0 +1,6 @@
+---
+- name: Reconfigure systems for selinux prep
+  ansible.builtin.import_tasks: bootstrap.yml
+
+- name: Reconfigure selinux policy on hosts
+  ansible.builtin.import_tasks: deploy.yml

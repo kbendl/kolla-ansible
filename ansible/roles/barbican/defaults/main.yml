@@ -5,6 +5,7 @@ barbican_services:
     group: barbican-api
     enabled: true
     image: "{{ barbican_api_image_full }}"
+    privileged: "{{ not barbican_selinux_enable | bool }}"
     volumes: "{{ barbican_api_default_volumes + barbican_api_extra_volumes }}"
     dimensions: "{{ barbican_api_dimensions }}"
     healthcheck: "{{ barbican_api_healthcheck }}"
@@ -36,6 +37,7 @@ barbican_services:
     group: barbican-keystone-listener
     enabled: true
     image: "{{ barbican_keystone_listener_image_full }}"
+    privileged: "{{ not barbican_selinux_enable | bool }}"
     volumes: "{{ barbican_keystone_listener_default_volumes + barbican_keystone_listener_extra_volumes }}"
     dimensions: "{{ barbican_keystone_listener_dimensions }}"
     healthcheck: "{{ barbican_keystone_listener_healthcheck }}"
@@ -44,6 +46,7 @@ barbican_services:
     group: barbican-worker
     enabled: true
     image: "{{ barbican_worker_image_full }}"
+    privileged: "{{ not barbican_selinux_enable | bool }}"
     volumes: "{{ barbican_worker_default_volumes + barbican_worker_extra_volumes }}"
     dimensions: "{{ barbican_worker_dimensions }}"
     healthcheck: "{{ barbican_worker_healthcheck }}"
@@ -233,3 +236,8 @@ barbican_database_enable_tls_internal: "{{ database_enable_tls_internal | bool }
 # Copy certificates
 ###################
 barbican_copy_certs: "{{ kolla_copy_ca_into_containers | bool or barbican_enable_tls_backend | bool or barbican_database_enable_tls_internal | bool }}"
+
+###################
+# Enable SELinux
+###################
+barbican_selinux_enable: "{{ kolla_barbican_selinux_enable | default(true) | bool }}"

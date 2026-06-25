@@ -2,6 +2,23 @@
 - name: Gather facts
   import_playbook: gather-facts.yml
 
+# SELinux host prep: must run BEFORE container runtime install
+- name: Prepare host for SELinux-enabled containers
+  hosts: baremetal
+  gather_facts: false
+  vars:
+    enable_selinux: "{{ enable_selinux | default(true) | bool }}"
+  tasks:
+    - name: Bootstrap SELinux host prerequisites
+      ansible.builtin.include_role:
+        name: service-selinux
+        tasks_from: bootstrap.yml
+      when:
+        - enable_selinux | bool
+        - ansible_os_family | default('') == 'RedHat'
+        - ansible_distribution_major_version | default('0') | int >= 9
+  tags: selinux,bootstrap
+
 - name: Apply role baremetal
   hosts: baremetal
   serial: '{{ kolla_serial|default("0") }}'

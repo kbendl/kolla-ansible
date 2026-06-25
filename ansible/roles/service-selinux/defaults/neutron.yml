@@ -1,0 +1,330 @@
+---
+kolla_selinux_policies_neutron:
+  # ----------------------------------------
+  # Neutron Control Plane (API)
+  # ----------------------------------------
+  neutron_server:
+    _helpers:
+      - bootstrap_neutron
+      - neutron_periodic_worker
+      - neutron_rpc_server
+    enabled: "{{ enable_neutron | default(true) | bool }}"
+    # group: "{{ neutron_server_group | default('neutron-server') }}"
+    groups:
+      - "network"
+      - "control"
+    description: "Dedicated SELinux domain for Neutron API Server"
+    domain: "kolla_neutron_server_t"
+    exec_type: "kolla_neutron_server_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type node_t;"
+      - "type proc_t;"
+      - "type mysqld_port_t;"
+      - "type memcache_port_t;"
+      - "type ephemeral_port_t;"
+      - "type neutron_port_t;"
+      - "type commplex_main_port_t;"
+      - "type amqp_port_t;"
+      - "class tcp_socket { name_bind name_connect node_bind listen };"
+      - "class netlink_tcpdiag_socket { nlmsg_read };"
+      - "type unlabeled_t;"
+    allow_rules:
+      - "allow kolla_neutron_server_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_neutron_server_t node_t:tcp_socket node_bind;"
+      - "allow kolla_neutron_server_t proc_t:file { read open getattr ioctl };"
+      - "allow kolla_neutron_server_t mysqld_port_t:tcp_socket name_connect;"
+      - "allow kolla_neutron_server_t memcache_port_t:tcp_socket name_connect;"
+      - "allow kolla_neutron_server_t ephemeral_port_t:tcp_socket name_connect;"
+      - "allow kolla_neutron_server_t neutron_port_t:tcp_socket name_connect;"
+      - "allow kolla_neutron_server_t commplex_main_port_t:tcp_socket name_connect;"
+      - "allow kolla_neutron_server_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_neutron_server_t self:netlink_tcpdiag_socket nlmsg_read;"
+      - "allow kolla_neutron_server_t self:tcp_socket listen;"
+      - "allow kolla_neutron_server_t neutron_port_t:tcp_socket name_bind;"
+      - "allow kolla_neutron_server_t unlabeled_t:tcp_socket { getattr read setopt write };"
+
+  # ----------------------------------------
+  # Neutron Network Node Agents
+  # ----------------------------------------
+  neutron_dhcp_agent:
+    enabled: "{{ enable_neutron_dhcp | default(true) | bool }}"
+    groups:
+      - "control"
+      - "network"
+    description: "Dedicated SELinux domain for Neutron DHCP Agent"
+    domain: "kolla_neutron_dhcp_t"
+    exec_type: "kolla_neutron_dhcp_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type var_run_t;"
+      - "type proc_net_t;"
+      - "class capability { net_admin net_raw sys_admin };"
+      - "class file { read open getattr };"
+      - "class netif { ingress egress };"
+      - "attribute domain;"
+      - "type proc_t;"
+      - "class process { getattr };"
+      - "class netlink_tcpdiag_socket { nlmsg_read getattr };"
+      - "class tcp_socket { getattr };"
+      - "class unix_stream_socket { getattr };"
+      - "class lnk_file { read getattr };"
+    allow_rules:
+      - "allow kolla_neutron_dhcp_t self:capability { net_admin net_raw sys_admin };"
+      - "allow kolla_neutron_dhcp_t var_run_t:dir { read search getattr };"
+      - "allow kolla_neutron_dhcp_t proc_net_t:file { read open getattr };"
+      - "allow kolla_neutron_dhcp_t self:netif { ingress egress };"
+      # Health-check introspection: ss -ntp / pgrep resolve sockets and
+      # enumerate processes across the whole host.
+      - "allow kolla_neutron_dhcp_t domain:process getattr;"
+      - "allow kolla_neutron_dhcp_t domain:file { read open getattr };"
+      - "allow kolla_neutron_dhcp_t domain:dir { read search getattr };"
+      - "allow kolla_neutron_dhcp_t domain:lnk_file { read getattr };"
+      - "allow kolla_neutron_dhcp_t domain:tcp_socket getattr;"
+      - "allow kolla_neutron_dhcp_t domain:unix_stream_socket getattr;"
+      - "allow kolla_neutron_dhcp_t self:netlink_tcpdiag_socket nlmsg_read;"
+      - "allow kolla_neutron_dhcp_t container_domain:netlink_tcpdiag_socket getattr;"
+      - "allow kolla_neutron_dhcp_t proc_t:file { read open getattr };"
+    interfaces:
+      # container_name is 'neutron_dhcp_agent', auto-label would be
+      # kolla_neutron_dhcp_agent_t.  Alias to our domain kolla_neutron_dhcp_t.
+      - "typealias kolla_neutron_dhcp_t alias kolla_neutron_dhcp_agent_t;"
+
+  neutron_l3_agent:
+    enabled: "{{ enable_neutron_l3 | default(true) | bool }}"
+    # group: "{{ neutron_openvswitch_agent_group | default('neutron-openvswitch-agent') }}"
+    groups:
+      - "network"
+    description: "Dedicated SELinux domain for Neutron L3 Routing Agent"
+    domain: "kolla_neutron_l3_t"
+    exec_type: "kolla_neutron_l3_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type tun_tap_device_t;"
+      - "class capability { net_admin sys_admin net_raw };"
+      - "class chr_file { read write open ioctl getattr };"
+      - "class netif { ingress egress };"
+      - "attribute domain;"
+      - "type proc_t;"
+      - "class process { getattr };"
+      - "class netlink_tcpdiag_socket { nlmsg_read getattr };"
+      - "class tcp_socket { getattr };"
+      - "class unix_stream_socket { getattr };"
+      - "class lnk_file { read getattr };"
+    allow_rules:
+      - "allow kolla_neutron_l3_t self:capability { net_admin sys_admin net_raw };"
+      - "allow kolla_neutron_l3_t tun_tap_device_t:chr_file { read write open ioctl getattr };"
+      - "allow kolla_neutron_l3_t self:netif {ingress egress };"
+      # Health-check introspection: ss -ntp / pgrep resolve sockets and
+      # enumerate processes across the whole host.
+      - "allow kolla_neutron_l3_t domain:process getattr;"
+      - "allow kolla_neutron_l3_t domain:file { read open getattr };"
+      - "allow kolla_neutron_l3_t domain:dir { read search getattr };"
+      - "allow kolla_neutron_l3_t domain:lnk_file { read getattr };"
+      - "allow kolla_neutron_l3_t domain:tcp_socket getattr;"
+      - "allow kolla_neutron_l3_t domain:unix_stream_socket getattr;"
+      - "allow kolla_neutron_l3_t self:netlink_tcpdiag_socket nlmsg_read;"
+      - "allow kolla_neutron_l3_t container_domain:netlink_tcpdiag_socket getattr;"
+      - "allow kolla_neutron_l3_t proc_t:file { read open getattr };"
+    interfaces:
+      # container_name is 'neutron_l3_agent', auto-label would be
+      # kolla_neutron_l3_agent_t.  Alias to our domain kolla_neutron_l3_t.
+      - "typealias kolla_neutron_l3_t alias kolla_neutron_l3_agent_t;"
+
+  # ----------------------------------------
+  # Neutron Compute Node Agents (OVS)
+  # container neutron_ovn_metadata_agent
+  # ----------------------------------------
+  neutron_openvswitch_agent:
+    enabled: "{{ enable_neutron_openvswitch | default(true) | bool }}"
+    # OVS agents must run on BOTH network routing nodes and baremetal compute nodes
+    # group: "{{ neutron_openvswitch_agent_group | default('neutron-openvswitch-agent') }}"
+    groups:
+      - "network"
+      - "compute"
+    description: "Dedicated SELinux domain for Neutron OVS Agent"
+    domain: "kolla_neutron_ovs_agent_t"
+    exec_type: "kolla_neutron_ovs_agent_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type var_run_t;"
+      - "type net_conf_t;"
+      - "type proc_t;"
+      - "class capability { net_admin sys_admin };"
+      - "class sock_file { create setattr write unlink };"
+      - "class file { read getattr open ioctl };"
+      - "class netlink_tcpdiag_socket { nlmsg_read };"
+      - "class tcp_socket { name_bind listen node_bind };"
+      - "type node_t;"
+      - "type openflow_port_t;"
+    allow_rules:
+      - "allow kolla_neutron_ovs_agent_t self:capability { net_admin sys_admin };"
+      - "allow kolla_neutron_ovs_agent_t var_run_t:sock_file { create setattr write unlink };"
+      - "allow kolla_neutron_ovs_agent_t net_conf_t:file { read getattr open };"
+      - "allow kolla_neutron_ovs_agent_t proc_t:file { read open getattr };"
+      - "allow kolla_neutron_ovs_agent_t self:netlink_tcpdiag_socket nlmsg_read;"
+      - "allow kolla_neutron_ovs_agent_t self:tcp_socket listen;"
+      - "allow kolla_neutron_ovs_agent_t node_t:tcp_socket node_bind;"
+      - "allow kolla_neutron_ovs_agent_t openflow_port_t:tcp_socket name_bind;"
+      - "allow kolla_neutron_ovs_agent_t proc_t:file ioctl;"
+    interfaces:
+      # container_name is 'neutron_openvswitch_agent', auto-label would be
+      # kolla_neutron_openvswitch_agent_t.  Alias to our domain kolla_neutron_ovs_agent_t.
+      - "typealias kolla_neutron_ovs_agent_t alias kolla_neutron_openvswitch_agent_t;"
+
+  # ----------------------------------------
+  # Neutron Metadata Agents
+  # ----------------------------------------
+  neutron_metadata_agent:
+    enabled: "{{ enable_neutron_metadata | default(true) | bool }}"
+    groups:
+      - "network"
+    description: "Dedicated SELinux domain for Neutron Metadata Agent"
+    domain: "kolla_neutron_metadata_agent_t"
+    exec_type: "kolla_neutron_metadata_agent_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type proc_t;"
+      - "type memcache_port_t;"
+      - "type ephemeral_port_t;"
+      - "type amqp_port_t;"
+      - "type node_t;"
+      - "class tcp_socket { name_bind name_connect node_bind };"
+      - "class file { read open getattr ioctl };"
+    allow_rules:
+      - "allow kolla_neutron_metadata_agent_t proc_t:file { read open getattr ioctl };"
+      - "allow kolla_neutron_metadata_agent_t memcache_port_t:tcp_socket name_connect;"
+      - "allow kolla_neutron_metadata_agent_t ephemeral_port_t:tcp_socket name_connect;"
+      - "allow kolla_neutron_metadata_agent_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_neutron_metadata_agent_t node_t:tcp_socket node_bind;"
+
+  neutron_ovn_metadata_agent:
+    enabled: "{{ enable_neutron_ovn_metadata | default(true) | bool }}"
+    groups:
+      - "network"
+    description: "Dedicated SELinux domain for Neutron OVN Metadata Agent"
+    domain: "kolla_neutron_ovn_metadata_agent_t"
+    exec_type: "kolla_neutron_ovn_metadata_agent_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type proc_net_t;"
+      - "type var_run_t;"
+      - "class capability { net_admin sys_admin };"
+      - "class file { read open getattr };"
+      - "class netif { ingress egress };"
+    allow_rules:
+      - "allow kolla_neutron_ovn_metadata_agent_t self:capability { net_admin sys_admin };"
+      - "allow kolla_neutron_ovn_metadata_agent_t proc_net_t:file { read open getattr };"
+      - "allow kolla_neutron_ovn_metadata_agent_t var_run_t:dir { read search getattr };"
+      - "allow kolla_neutron_ovn_metadata_agent_t self:netif { ingress egress };"
+
+  # ----------------------------------------
+  # Neutron SR-IOV / Mellanox Agents
+  # ----------------------------------------
+  neutron_sriov_agent:
+    enabled: "{{ enable_neutron_sriov | default(false) | bool }}"
+    groups:
+      - "compute"
+    description: "Dedicated SELinux domain for Neutron SR-IOV Agent"
+    domain: "kolla_neutron_sriov_agent_t"
+    exec_type: "kolla_neutron_sriov_agent_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type proc_t;"
+      - "class capability { net_admin sys_admin };"
+      - "class file { read open getattr ioctl };"
+    allow_rules:
+      - "allow kolla_neutron_sriov_agent_t self:capability { net_admin sys_admin };"
+      - "allow kolla_neutron_sriov_agent_t proc_t:file { read open getattr ioctl };"
+
+  neutron_mlnx_agent:
+    enabled: "{{ enable_neutron_mlnx | default(false) | bool }}"
+    groups:
+      - "compute"
+    description: "Dedicated SELinux domain for Neutron Mellanox Agent"
+    domain: "kolla_neutron_mlnx_agent_t"
+    exec_type: "kolla_neutron_mlnx_agent_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type proc_t;"
+      - "class capability { net_admin sys_admin };"
+      - "class file { read open getattr ioctl };"
+    allow_rules:
+      - "allow kolla_neutron_mlnx_agent_t self:capability { net_admin sys_admin };"
+      - "allow kolla_neutron_mlnx_agent_t proc_t:file { read open getattr ioctl };"
+
+  neutron_eswitchd:
+    enabled: "{{ enable_neutron_mlnx | default(false) | bool }}"
+    groups:
+      - "compute"
+    description: "Dedicated SELinux domain for Neutron Mellanox eSwitchd"
+    domain: "kolla_neutron_eswitchd_t"
+    exec_type: "kolla_neutron_eswitchd_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type proc_t;"
+      - "type var_run_t;"
+      - "class capability { net_admin sys_admin };"
+      - "class file { read open getattr };"
+    allow_rules:
+      - "allow kolla_neutron_eswitchd_t self:capability { net_admin sys_admin };"
+      - "allow kolla_neutron_eswitchd_t var_run_t:dir { read search getattr };"
+      - "allow kolla_neutron_eswitchd_t proc_t:file { read open getattr };"
+
+  # ----------------------------------------
+  # Neutron BGP / Metering / OVN Agents
+  # ----------------------------------------
+  neutron_bgp_dragent:
+    enabled: "{{ enable_neutron_bgp_dragent | default(false) | bool }}"
+    groups:
+      - "network"
+    description: "Dedicated SELinux domain for Neutron BGP Dynamic Routing Agent"
+    domain: "kolla_neutron_bgp_dragent_t"
+    exec_type: "kolla_neutron_bgp_dragent_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type proc_t;"
+      - "type port_t;"
+      - "class capability { net_admin sys_admin };"
+      - "class tcp_socket { name_bind name_connect };"
+      - "class file { read open getattr ioctl };"
+    allow_rules:
+      - "allow kolla_neutron_bgp_dragent_t self:capability { net_admin sys_admin };"
+      - "allow kolla_neutron_bgp_dragent_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_neutron_bgp_dragent_t proc_t:file { read open getattr ioctl };"
+
+  neutron_metering_agent:
+    enabled: "{{ enable_neutron_metering | default(false) | bool }}"
+    groups:
+      - "network"
+    description: "Dedicated SELinux domain for Neutron Metering Agent"
+    domain: "kolla_neutron_metering_agent_t"
+    exec_type: "kolla_neutron_metering_agent_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type proc_t;"
+      - "class capability { net_admin };"
+      - "class file { read open getattr ioctl };"
+    allow_rules:
+      - "allow kolla_neutron_metering_agent_t self:capability { net_admin };"
+      - "allow kolla_neutron_metering_agent_t proc_t:file { read open getattr ioctl };"
+
+  neutron_ovn_agent:
+    enabled: "{{ neutron_enable_ovn_agent | default(false) | bool }}"
+    groups:
+      - "network"
+    description: "Dedicated SELinux domain for Neutron OVN Agent"
+    domain: "kolla_neutron_ovn_agent_t"
+    exec_type: "kolla_neutron_ovn_agent_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type proc_t;"
+      - "type ephemeral_port_t;"
+      - "class capability { net_admin };"
+      - "class file { read open getattr ioctl };"
+      - "class tcp_socket { name_connect };"
+    allow_rules:
+      - "allow kolla_neutron_ovn_agent_t self:capability { net_admin };"
+      - "allow kolla_neutron_ovn_agent_t proc_t:file { read open getattr ioctl };"
+      - "allow kolla_neutron_ovn_agent_t ephemeral_port_t:tcp_socket name_connect;"

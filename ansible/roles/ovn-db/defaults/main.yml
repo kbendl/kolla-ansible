@@ -8,6 +8,7 @@ ovn_db_services:
       OVN_NB_DB: "{{ ovn_nb_connection }}"
       OVN_SB_DB: "{{ ovn_sb_connection_no_relay }}"
     image: "{{ ovn_northd_image_full }}"
+    privileged: "{{ not ovn_db_selinux_enable | bool }}"
     volumes: "{{ ovn_northd_default_volumes + ovn_northd_extra_volumes }}"
     dimensions: "{{ ovn_northd_dimensions }}"
   ovn-nb-db:
@@ -17,6 +18,7 @@ ovn_db_services:
     environment:
       OVN_NB_DB: "{{ ovn_nb_connection }}"
     image: "{{ ovn_nb_db_image_full }}"
+    privileged: "{{ not ovn_db_selinux_enable | bool }}"
     volumes: "{{ ovn_nb_db_default_volumes + ovn_nb_db_extra_volumes }}"
     dimensions: "{{ ovn_nb_db_dimensions }}"
   ovn-sb-db:
@@ -26,6 +28,7 @@ ovn_db_services:
     environment:
       OVN_SB_DB: "{{ ovn_sb_connection_no_relay }}"
     image: "{{ ovn_sb_db_image_full }}"
+    privileged: "{{ not ovn_db_selinux_enable | bool }}"
     volumes: "{{ ovn_sb_db_default_volumes + ovn_sb_db_extra_volumes }}"
     dimensions: "{{ ovn_sb_db_dimensions }}"
   ovn-sb-db-relay:
@@ -35,6 +38,7 @@ ovn_db_services:
     environment:
       RELAY_ID: "{{ item | default(ovn_sb_db_relay_group_id | default('1')) | string }}"
     image: "{{ ovn_sb_db_relay_image_full }}"
+    privileged: "{{ not ovn_db_selinux_enable | bool }}"
     iterate: true
     iterate_var: "{{ ovn_sb_db_relay_count | int }}"
     volumes: "{{ ovn_sb_db_relay_default_volumes + ovn_sb_db_relay_extra_volumes }}"
@@ -139,3 +143,8 @@ ovn_leader_election_pause: 5
 
 # Extra command line arguments for ovn-northd
 ovn_northd_cmdline_extras: ""
+
+####################
+# Enable SELinux
+####################
+ovn_db_selinux_enable: "{{ kolla_ovn_db_selinux_enable | default(true) | bool }}"

@@ -1,0 +1,30 @@
+---
+kolla_selinux_policies_valkey:
+  valkey:
+    _helpers: []
+    enabled: "{{ enable_valkey | default(true) | bool }}"
+    groups:
+      - "control"
+    description: "Dedicated SELinux domain for Valkey (Redis-compatible)"
+    domain: "kolla_valkey_t"
+    exec_type: "kolla_valkey_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type redis_port_t;"
+      - "type proc_t;"
+      - "class tcp_socket { name_bind name_connect };"
+      - "class process { setrlimit };"
+      - "class file { read open getattr };"
+      - "class netlink_tcpdiag_socket { nlmsg_read };"
+    allow_rules:
+      - "allow kolla_valkey_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_valkey_t self:process setrlimit;"
+      - "allow kolla_valkey_t proc_t:file { read open getattr };"
+      - "allow kolla_valkey_t self:netlink_tcpdiag_socket nlmsg_read;"
+    interfaces:
+      # The container names are valkey_server and valkey_sentinel;
+      # the auto-generated labels are kolla_valkey_server_t and
+      # kolla_valkey_sentinel_t.  Alias both back to our domain.
+      - "typealias kolla_valkey_t alias kolla_valkey_server_t;"
+      - "typealias kolla_valkey_t alias kolla_valkey_sentinel_t;"

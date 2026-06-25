@@ -1,0 +1,43 @@
+---
+kolla_selinux_policies_magnum:
+  magnum_api:
+    _helpers:
+      - magnum_bootstrap
+    enabled: "{{ enable_magnum | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Magnum API service"
+    domain: "kolla_magnum_api_t"
+    exec_type: "kolla_magnum_api_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type proc_t;"
+      - "type mysqld_port_t;"
+      - "type memcache_port_t;"
+      - "type amqp_port_t;"
+      - "class tcp_socket { name_bind name_connect };"
+      - "class file { read open getattr };"
+    allow_rules:
+      - "allow kolla_magnum_api_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_magnum_api_t mysqld_port_t:tcp_socket name_connect;"
+      - "allow kolla_magnum_api_t memcache_port_t:tcp_socket name_connect;"
+      - "allow kolla_magnum_api_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_magnum_api_t proc_t:file { read open getattr };"
+
+  magnum_conductor:
+    enabled: "{{ enable_magnum | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Magnum Conductor"
+    domain: "kolla_magnum_conductor_t"
+    exec_type: "kolla_magnum_conductor_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type proc_t;"
+      - "type amqp_port_t;"
+      - "class tcp_socket { name_connect };"
+      - "class file { read open getattr };"
+    allow_rules:
+      - "allow kolla_magnum_conductor_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_magnum_conductor_t proc_t:file { read open getattr };"

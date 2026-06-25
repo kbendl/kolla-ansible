@@ -1,0 +1,123 @@
+---
+kolla_selinux_policies_ironic:
+  ironic_api:
+    _helpers:
+      - ironic_bootstrap
+    enabled: "{{ enable_ironic | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Ironic API service"
+    domain: "kolla_ironic_api_t"
+    exec_type: "kolla_ironic_api_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type proc_t;"
+      - "type mysqld_port_t;"
+      - "type memcache_port_t;"
+      - "class tcp_socket { name_bind name_connect };"
+      - "class file { read open getattr };"
+    allow_rules:
+      - "allow kolla_ironic_api_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_ironic_api_t mysqld_port_t:tcp_socket name_connect;"
+      - "allow kolla_ironic_api_t memcache_port_t:tcp_socket name_connect;"
+      - "allow kolla_ironic_api_t proc_t:file { read open getattr };"
+
+  ironic_conductor:
+    enabled: "{{ enable_ironic | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Ironic Conductor service"
+    domain: "kolla_ironic_conductor_t"
+    exec_type: "kolla_ironic_conductor_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type proc_t;"
+      - "type mysqld_port_t;"
+      - "type amqp_port_t;"
+      - "type tftp_port_t;"
+      - "class tcp_socket { name_connect };"
+      - "class udp_socket { node_bind };"
+      - "class file { read open getattr };"
+    allow_rules:
+      - "allow kolla_ironic_conductor_t mysqld_port_t:tcp_socket name_connect;"
+      - "allow kolla_ironic_conductor_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_ironic_conductor_t tftp_port_t:udp_socket node_bind;"
+      - "allow kolla_ironic_conductor_t proc_t:file { read open getattr };"
+
+  ironic_tftp:
+    enabled: "{{ enable_ironic | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Ironic TFTP server"
+    domain: "kolla_ironic_tftp_t"
+    exec_type: "kolla_ironic_tftp_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type tftp_port_t;"
+      - "class udp_socket { name_bind };"
+    allow_rules:
+      - "allow kolla_ironic_tftp_t tftp_port_t:udp_socket name_bind;"
+
+  ironic_http:
+    enabled: "{{ enable_ironic | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Ironic HTTP boot server"
+    domain: "kolla_ironic_http_t"
+    exec_type: "kolla_ironic_http_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "class tcp_socket { name_bind name_connect };"
+    allow_rules:
+      - "allow kolla_ironic_http_t port_t:tcp_socket { name_bind name_connect };"
+
+  ironic_dnsmasq:
+    enabled: "{{ enable_ironic | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Ironic dnsmasq (DHCP/TFTP)"
+    domain: "kolla_ironic_dnsmasq_t"
+    exec_type: "kolla_ironic_dnsmasq_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type tftp_port_t;"
+      - "class capability { net_admin net_raw setuid setgid };"
+      - "class tcp_socket { name_bind };"
+      - "class udp_socket { name_bind };"
+    allow_rules:
+      - "allow kolla_ironic_dnsmasq_t self:capability { net_admin net_raw setuid setgid };"
+      - "allow kolla_ironic_dnsmasq_t port_t:tcp_socket name_bind;"
+      - "allow kolla_ironic_dnsmasq_t tftp_port_t:udp_socket name_bind;"
+
+  ironic_pxe_filter:
+    enabled: "{{ enable_ironic | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Ironic PXE filter"
+    domain: "kolla_ironic_pxe_filter_t"
+    exec_type: "kolla_ironic_pxe_filter_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "class capability { net_admin net_raw };"
+      - "class tcp_socket { name_bind };"
+    allow_rules:
+      - "allow kolla_ironic_pxe_filter_t self:capability { net_admin net_raw };"
+      - "allow kolla_ironic_pxe_filter_t port_t:tcp_socket name_bind;"
+
+  ironic_prometheus_exporter:
+    enabled: "{{ enable_ironic | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Ironic Prometheus exporter"
+    domain: "kolla_ironic_prometheus_exporter_t"
+    exec_type: "kolla_ironic_prometheus_exporter_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "class tcp_socket { name_bind name_connect };"
+    allow_rules:
+      - "allow kolla_ironic_prometheus_exporter_t port_t:tcp_socket { name_bind name_connect };"

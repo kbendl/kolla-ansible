@@ -1,0 +1,99 @@
+---
+kolla_selinux_policies_barbican:
+  # ----------------------------------------
+  # Barbican API
+  # ----------------------------------------
+  barbican_api:
+    _helpers:
+      - bootstrap_barbican
+    enabled: "{{ enable_barbican | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Barbican API"
+    domain: "kolla_barbican_api_t"
+    exec_type: "kolla_barbican_api_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type proc_t;"
+      - "type node_t;"
+      - "type mysqld_port_t;"
+      - "type unreserved_port_t;"
+      - "type ephemeral_port_t;"
+      - "class tcp_socket { name_bind name_connect node_bind listen };"
+      - "class file { read open getattr ioctl };"
+    allow_rules:
+      # API binds its assigned port (9311) and connects to MariaDB/RabbitMQ
+      - "allow kolla_barbican_api_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_barbican_api_t proc_t:file { read open getattr ioctl };"
+      - "allow kolla_barbican_api_t mysqld_port_t:tcp_socket name_connect;"
+      - "allow kolla_barbican_api_t unreserved_port_t:tcp_socket { name_bind name_connect };"
+      # uwsgi workers connect back to the master's loopback socket on a high port
+      - "allow kolla_barbican_api_t ephemeral_port_t:tcp_socket name_connect;"
+      - "allow kolla_barbican_api_t node_t:tcp_socket node_bind;"
+      - "allow kolla_barbican_api_t self:tcp_socket listen;"
+  barbican_worker:
+    enabled: "{{ enable_barbican | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Barbican Cryptographic Worker"
+    domain: "kolla_barbican_worker_t"
+    exec_type: "kolla_barbican_worker_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type proc_t;"
+      - "type mysqld_port_t;"
+      - "type amqp_port_t;"
+      - "class tcp_socket { name_connect };"
+      - "class process { setrlimit };"
+      - "class file { read open getattr };"
+      # Critical capability to lock memory and prevent secrets from writing to swap
+      - "class capability { ipc_lock };"
+      - "class netlink_tcpdiag_socket { nlmsg_read };"
+      - "type unlabeled_t;"
+    allow_rules:
+      - "allow kolla_barbican_worker_t port_t:tcp_socket name_connect;"
+      - "allow kolla_barbican_worker_t proc_t:file { read open getattr };"
+      - "allow kolla_barbican_worker_t mysqld_port_t:tcp_socket name_connect;"
+      - "allow kolla_barbican_worker_t amqp_port_t:tcp_socket name_connect;"
+      # Healthcheck tools (ss) query TCP socket diagnostics
+      - "allow kolla_barbican_worker_t self:netlink_tcpdiag_socket nlmsg_read;"
+      - "allow kolla_barbican_worker_t unlabeled_t:tcp_socket { getattr read write };"
+
+  # ----------------------------------------
+  # Barbican Keystone Listener
+  # ----------------------------------------
+  barbican_keystone_listener:
+    enabled: "{{ enable_barbican | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Barbican Keystone Listener"
+    domain: "kolla_barbican_keystone_listener_t"
+    exec_type: "kolla_barbican_keystone_listener_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type proc_t;"
+      - "type mysqld_port_t;"
+      - "type amqp_port_t;"
+      - "type commplex_main_port_t;"
+      - "type container_file_t;"
+      - "class tcp_socket { name_connect };"
+      - "class file { read open getattr create write unlink link };"
+      - "class dir { add_name remove_name write };"
+      - "class netlink_tcpdiag_socket { nlmsg_read };"
+      - "type unlabeled_t;"
+    allow_rules:
+      - "allow kolla_barbican_keystone_listener_t port_t:tcp_socket name_connect;"
+      - "allow kolla_barbican_keystone_listener_t proc_t:file { read open getattr };"
+      - "allow kolla_barbican_keystone_listener_t mysqld_port_t:tcp_socket name_connect;"
+      - "allow kolla_barbican_keystone_listener_t amqp_port_t:tcp_socket name_connect;"
+      # Keystone notifications endpoint (port 5000)
+      - "allow kolla_barbican_keystone_listener_t commplex_main_port_t:tcp_socket name_connect;"
+      # POSIX semaphores in /dev/shm for multiprocessing IPC
+      - "allow kolla_barbican_keystone_listener_t container_file_t:file { create read write unlink link };"
+      - "allow kolla_barbican_keystone_listener_t container_file_t:dir { add_name remove_name write };"
+      # Healthcheck tools (ss) query TCP socket diagnostics
+      - "allow kolla_barbican_keystone_listener_t self:netlink_tcpdiag_socket nlmsg_read;"
+      - "allow kolla_barbican_keystone_listener_t unlabeled_t:tcp_socket { getattr read write };"

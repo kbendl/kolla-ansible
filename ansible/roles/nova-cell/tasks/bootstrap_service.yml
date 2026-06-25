@@ -14,6 +14,8 @@
     labels:
       BOOTSTRAP:
     name: "nova_cell_bootstrap"
+    security_opt:
+      - "label=type:kolla_nova_conductor_t"
     restart_policy: oneshot
     volumes: "{{ nova_cell_bootstrap_default_volumes + nova_cell_bootstrap_extra_volumes }}"
   register: bootstrap_result

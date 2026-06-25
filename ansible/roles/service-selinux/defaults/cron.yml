@@ -1,0 +1,23 @@
+---
+kolla_selinux_policies_cron:
+  cron:
+    _helpers: []
+    enabled: "{{ enable_cron | default(true) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Kolla Cron (logrotate and scheduled tasks)"
+    domain: "kolla_cron_t"
+    exec_type: "kolla_cron_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type mysqld_port_t;"
+      - "type memcache_port_t;"
+      - "type proc_t;"
+      - "class tcp_socket name_connect;"
+      - "class dir { read search getattr open };"
+      - "class file { read getattr open };"
+    allow_rules:
+      - "allow kolla_cron_t mysqld_port_t:tcp_socket name_connect;"
+      - "allow kolla_cron_t memcache_port_t:tcp_socket name_connect;"
+      - "allow kolla_cron_t proc_t:file { read open getattr };"

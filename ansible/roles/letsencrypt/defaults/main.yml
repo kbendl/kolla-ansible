@@ -5,6 +5,7 @@ letsencrypt_services:
     group: letsencrypt-lego
     enabled: true
     image: "{{ letsencrypt_lego_image_full }}"
+    privileged: "{{ not letsencrypt_selinux_enable | bool }}"
     volumes: "{{ letsencrypt_lego_default_volumes + letsencrypt_lego_extra_volumes }}"
     dimensions: "{{ letsencrypt_lego_dimensions }}"
   letsencrypt-webserver:
@@ -12,6 +13,7 @@ letsencrypt_services:
     group: letsencrypt-webserver
     enabled: true
     image: "{{ letsencrypt_webserver_image_full }}"
+    privileged: "{{ not letsencrypt_selinux_enable | bool }}"
     volumes: "{{ letsencrypt_webserver_default_volumes + letsencrypt_webserver_extra_volumes }}"
     dimensions: "{{ letsencrypt_webserver_dimensions }}"
 
@@ -64,3 +66,8 @@ letsencrypt_key_type: ""
 # Copy certificates
 ###################
 letsencrypt_copy_certs: "{{ kolla_copy_ca_into_containers | bool }}"
+
+####################
+# Enable SELinux
+####################
+letsencrypt_selinux_enable: "{{ kolla_letsencrypt_selinux_enable | default(true) | bool }}"

@@ -5,6 +5,7 @@ fluentd_services:
     group: fluentd
     enabled: "{{ enable_fluentd | bool }}"
     image: "{{ fluentd_image_full }}"
+    privileged: "{{ not fluentd_selinux_enable | bool }}"
     environment:
       KOLLA_CONFIG_STRATEGY: "{{ config_strategy }}"
     volumes: "{{ fluentd_default_volumes + fluentd_extra_volumes }}"
@@ -124,3 +125,9 @@ fluentd_input_openstack_services:
     enabled: "{{ enable_watcher | bool }}"
 
 fluentd_enabled_input_openstack_services: "{{ fluentd_input_openstack_services | selectattr('enabled', 'equalto', true) | map(attribute='name') | list }}"
+
+
+###################
+# Enable SELinux
+###################
+fluentd_selinux_enable: "{{ kolla_fluentd_selinux_enable | default(true) | bool }}"

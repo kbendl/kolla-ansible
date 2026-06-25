@@ -7,7 +7,7 @@ glance_services:
     enabled: true
     image: "{{ glance_api_image_full }}"
     environment: "{{ glance_api_container_proxy }}"
-    privileged: "{{ glance_api_privileged | bool }}"
+    privileged: "{{ not glance_selinux_enable | bool }}"
     volumes: "{{ glance_api_default_volumes + glance_api_extra_volumes }}"
     dimensions: "{{ glance_api_dimensions }}"
     healthcheck: "{{ glance_api_healthcheck }}"
@@ -181,7 +181,7 @@ glance_api_default_volumes:
   - "kolla_logs:/var/log/kolla/"
   - "{{ '/dev/shm:/dev/shm' }}"
   - "{% if enable_cinder | bool and enable_cinder_backend_iscsi | bool %}iscsi_info:/etc/iscsi{% endif %}"
-  - "{% if glance_api_privileged | bool %}/dev:/dev{% endif %}"
+  - "{% if not glance_selinux_enable | bool %}/dev:/dev{% endif %}"
 
 glance_extra_volumes: "{{ default_extra_volumes }}"
 glance_api_extra_volumes: "{{ glance_extra_volumes }}"
@@ -238,13 +238,12 @@ glance_dev_repos_pull: "{{ kolla_dev_repos_pull }}"
 glance_dev_mode: "{{ kolla_dev_mode }}"
 glance_source_version: "{{ kolla_source_version }}"
 
-# Some Cinder backends need access to the real /dev fs.
-enable_cinder_backend_privileged: >-
-  {{ enable_cinder_backend_iscsi | bool or
+# iSCSI and VAST NVME-over-TCP need access to the real /dev fs.
+# When SELinux is enabled, /dev access is governed by policy instead of privileges.
+glance_api_privileged: "{{ not glance_selinux_enable | bool and (enable_cinder | bool) and
+    (enable_cinder_backend_iscsi | bool or
     cinder_backend_ceph | bool or
-    enable_cinder_backend_vast | bool
-  }}
-glance_api_privileged: "{{ enable_cinder | bool and enable_cinder_backend_privileged | bool }}"
+    enable_cinder_backend_vast | bool) }}"
 
 ###################
 # Glance cache
@@ -259,3 +258,8 @@ glance_database_enable_tls_internal: "{{ database_enable_tls_internal | bool }}"
 # Copy certificates
 ###################
 glance_copy_certs: "{{ kolla_copy_ca_into_containers | bool or glance_enable_tls_backend | bool or glance_database_enable_tls_internal | bool }}"
+
+###################
+# Enable SELinux
+###################
+glance_selinux_enable: "{{ kolla_glance_selinux_enable | default(true) | bool }}"

@@ -5,6 +5,7 @@ prometheus_services:
     group: prometheus
     enabled: "{{ enable_prometheus_server | bool }}"
     image: "{{ prometheus_server_image_full }}"
+    privileged: "{{ not prometheus_selinux_enable | bool }}"
     volumes: "{{ prometheus_server_default_volumes + prometheus_server_extra_volumes }}"
     dimensions: "{{ prometheus_server_dimensions }}"
     haproxy:
@@ -33,6 +34,7 @@ prometheus_services:
     group: prometheus-mysqld-exporter
     enabled: "{{ enable_prometheus_mysqld_exporter | bool }}"
     image: "{{ prometheus_mysqld_exporter_image_full }}"
+    privileged: "{{ not prometheus_selinux_enable | bool }}"
     volumes: "{{ prometheus_mysqld_exporter_default_volumes + prometheus_mysqld_exporter_extra_volumes }}"
     dimensions: "{{ prometheus_mysqld_exporter_dimensions }}"
   prometheus-memcached-exporter:
@@ -40,6 +42,7 @@ prometheus_services:
     group: prometheus-memcached-exporter
     enabled: "{{ enable_prometheus_memcached_exporter | bool }}"
     image: "{{ prometheus_memcached_exporter_image_full }}"
+    privileged: "{{ not prometheus_selinux_enable | bool }}"
     volumes: "{{ prometheus_memcached_exporter_default_volumes + prometheus_memcached_exporter_extra_volumes }}"
     dimensions: "{{ prometheus_memcached_exporter_dimensions }}"
   prometheus-alertmanager:
@@ -47,6 +50,7 @@ prometheus_services:
     group: "prometheus-alertmanager"
     enabled: "{{ enable_prometheus_alertmanager | bool }}"
     image: "{{ prometheus_alertmanager_image_full }}"
+    privileged: "{{ not prometheus_selinux_enable | bool }}"
     volumes: "{{ prometheus_alertmanager_default_volumes + prometheus_alertmanager_extra_volumes }}"
     dimensions: "{{ prometheus_alertmanager_dimensions }}"
     healthcheck: "{{ prometheus_alertmanager_healthcheck }}"
@@ -82,6 +86,7 @@ prometheus_services:
     environment:
       OS_COMPUTE_API_VERSION: "{{ prometheus_openstack_exporter_compute_api_version }}"
     image: "{{ prometheus_openstack_exporter_image_full }}"
+    privileged: "{{ not prometheus_selinux_enable | bool }}"
     volumes: "{{ prometheus_openstack_exporter_default_volumes + prometheus_openstack_exporter_extra_volumes }}"
     dimensions: "{{ prometheus_openstack_exporter_dimensions }}"
     haproxy:
@@ -106,6 +111,7 @@ prometheus_services:
     group: prometheus-elasticsearch-exporter
     enabled: "{{ enable_prometheus_elasticsearch_exporter | bool }}"
     image: "{{ prometheus_elasticsearch_exporter_image_full }}"
+    privileged: "{{ not prometheus_selinux_enable | bool }}"
     volumes: "{{ prometheus_elasticsearch_exporter_default_volumes + prometheus_elasticsearch_exporter_extra_volumes }}"
     dimensions: "{{ prometheus_elasticsearch_exporter_dimensions }}"
   prometheus-blackbox-exporter:
@@ -115,6 +121,7 @@ prometheus_services:
     group: "prometheus-blackbox-exporter"
     enabled: "{{ enable_prometheus_blackbox_exporter | bool }}"
     image: "{{ prometheus_blackbox_exporter_image_full }}"
+    privileged: "{{ not prometheus_selinux_enable | bool }}"
     volumes: "{{ prometheus_blackbox_exporter_default_volumes + prometheus_blackbox_exporter_extra_volumes }}"
     dimensions: "{{ prometheus_blackbox_exporter_dimensions }}"
   prometheus-libvirt-exporter:
@@ -122,6 +129,7 @@ prometheus_services:
     group: "prometheus-libvirt-exporter"
     enabled: "{{ enable_prometheus_libvirt_exporter | bool }}"
     image: "{{ prometheus_libvirt_exporter_image_full }}"
+    privileged: "{{ not prometheus_selinux_enable | bool }}"
     volumes: "{{ prometheus_libvirt_exporter_default_volumes + prometheus_libvirt_exporter_extra_volumes }}"
     dimensions: "{{ prometheus_libvirt_exporter_dimensions }}"
   prometheus-openstack-network-exporter:
@@ -129,6 +137,7 @@ prometheus_services:
     group: "prometheus-openstack-network-exporter"
     enabled: "{{ enable_prometheus_openstack_network_exporter | bool }}"
     image: "{{ prometheus_openstack_network_exporter_image_full }}"
+    privileged: "{{ not prometheus_selinux_enable | bool }}"
     volumes: "{{ prometheus_openstack_network_exporter_default_volumes + prometheus_openstack_network_exporter_extra_volumes }}"
     dimensions: "{{ prometheus_openstack_network_exporter_dimensions }}"
     pid_mode: host
@@ -137,6 +146,7 @@ prometheus_services:
     group: "prometheus-valkey-exporter"
     enabled: "{{ enable_prometheus_valkey_exporter | bool }}"
     image: "{{ prometheus_valkey_exporter_image_full }}"
+    privileged: "{{ not prometheus_selinux_enable | bool }}"
     volumes: "{{ prometheus_valkey_exporter_default_volumes + prometheus_valkey_exporter_extra_volumes }}"
     dimensions: "{{ prometheus_valkey_exporter_dimensions }}"
 
@@ -534,3 +544,8 @@ prometheus_openstack_network_exporter_interval: "{{ prometheus_scrape_interval }
 # Copy certificates
 ###################
 prometheus_copy_certs: "{{ kolla_copy_ca_into_containers | bool }}"
+
+####################
+# Enable SELinux
+####################
+prometheus_selinux_enable: "{{ kolla_prometheus_selinux_enable | default(true) | bool }}"

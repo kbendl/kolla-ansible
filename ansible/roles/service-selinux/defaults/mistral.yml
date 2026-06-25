@@ -1,0 +1,73 @@
+---
+kolla_selinux_policies_mistral:
+  mistral_api:
+    enabled: "{{ enable_mistral | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Mistral API service"
+    domain: "kolla_mistral_api_t"
+    exec_type: "kolla_mistral_api_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type proc_t;"
+      - "type mysqld_port_t;"
+      - "type amqp_port_t;"
+      - "class tcp_socket { name_bind name_connect };"
+      - "class file { read open getattr };"
+    allow_rules:
+      - "allow kolla_mistral_api_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_mistral_api_t mysqld_port_t:tcp_socket name_connect;"
+      - "allow kolla_mistral_api_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_mistral_api_t proc_t:file { read open getattr };"
+
+  mistral_engine:
+    enabled: "{{ enable_mistral | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Mistral Engine"
+    domain: "kolla_mistral_engine_t"
+    exec_type: "kolla_mistral_engine_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type proc_t;"
+      - "type amqp_port_t;"
+      - "class tcp_socket { name_connect };"
+      - "class file { read open getattr };"
+    allow_rules:
+      - "allow kolla_mistral_engine_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_mistral_engine_t proc_t:file { read open getattr };"
+
+  mistral_event_engine:
+    enabled: "{{ enable_mistral | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Mistral Event Engine"
+    domain: "kolla_mistral_event_engine_t"
+    exec_type: "kolla_mistral_event_engine_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type proc_t;"
+      - "type amqp_port_t;"
+      - "class tcp_socket { name_connect };"
+      - "class file { read open getattr };"
+    allow_rules:
+      - "allow kolla_mistral_event_engine_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_mistral_event_engine_t proc_t:file { read open getattr };"
+
+  mistral_executor:
+    enabled: "{{ enable_mistral | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Mistral Executor"
+    domain: "kolla_mistral_executor_t"
+    exec_type: "kolla_mistral_executor_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type proc_t;"
+      - "type amqp_port_t;"
+      - "class tcp_socket { name_connect };"
+      - "class file { read open getattr };"
+    allow_rules:
+      - "allow kolla_mistral_executor_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_mistral_executor_t proc_t:file { read open getattr };"

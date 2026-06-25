@@ -1,0 +1,73 @@
+---
+kolla_selinux_policies_masakari:
+  masakari_api:
+    enabled: "{{ enable_masakari | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Masakari API service"
+    domain: "kolla_masakari_api_t"
+    exec_type: "kolla_masakari_api_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type proc_t;"
+      - "type mysqld_port_t;"
+      - "type amqp_port_t;"
+      - "class tcp_socket { name_bind name_connect };"
+      - "class file { read open getattr };"
+    allow_rules:
+      - "allow kolla_masakari_api_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_masakari_api_t mysqld_port_t:tcp_socket name_connect;"
+      - "allow kolla_masakari_api_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_masakari_api_t proc_t:file { read open getattr };"
+
+  masakari_engine:
+    enabled: "{{ enable_masakari | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Masakari Engine"
+    domain: "kolla_masakari_engine_t"
+    exec_type: "kolla_masakari_engine_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type proc_t;"
+      - "type amqp_port_t;"
+      - "class tcp_socket { name_connect };"
+      - "class file { read open getattr };"
+    allow_rules:
+      - "allow kolla_masakari_engine_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_masakari_engine_t proc_t:file { read open getattr };"
+
+  masakari_instancemonitor:
+    enabled: "{{ enable_masakari | default(false) | bool }}"
+    groups:
+      - "compute"
+    description: "SELinux domain for Masakari Instance Monitor"
+    domain: "kolla_masakari_instancemonitor_t"
+    exec_type: "kolla_masakari_instancemonitor_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type proc_t;"
+      - "type amqp_port_t;"
+      - "class tcp_socket { name_connect };"
+      - "class file { read open getattr };"
+    allow_rules:
+      - "allow kolla_masakari_instancemonitor_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_masakari_instancemonitor_t proc_t:file { read open getattr };"
+
+  masakari_hostmonitor:
+    enabled: "{{ enable_masakari | default(false) | bool }}"
+    groups:
+      - "compute"
+    description: "SELinux domain for Masakari Host Monitor"
+    domain: "kolla_masakari_hostmonitor_t"
+    exec_type: "kolla_masakari_hostmonitor_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type proc_t;"
+      - "type amqp_port_t;"
+      - "class tcp_socket { name_connect };"
+      - "class file { read open getattr };"
+    allow_rules:
+      - "allow kolla_masakari_hostmonitor_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_masakari_hostmonitor_t proc_t:file { read open getattr };"

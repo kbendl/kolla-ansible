@@ -1,0 +1,35 @@
+---
+kolla_selinux_policies_horizon:
+  horizon:
+    _helpers:
+      - bootstrap_horizon
+    enabled: "{{ enable_horizon | default(true) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Horizon dashboard"
+    domain: "kolla_horizon_t"
+    exec_type: "kolla_horizon_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type node_t;"
+      - "type proc_t;"
+      - "type mysqld_port_t;"
+      - "type memcache_port_t;"
+      - "type commplex_main_port_t;"
+      - "type ephemeral_port_t;"
+      - "type http_cache_port_t;"
+      - "type http_port_t;"
+      - "class tcp_socket { name_bind name_connect node_bind };"
+      - "type unlabeled_t;"
+    allow_rules:
+      - "allow kolla_horizon_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_horizon_t node_t:tcp_socket node_bind;"
+      - "allow kolla_horizon_t proc_t:file { read open getattr ioctl };"
+      - "allow kolla_horizon_t mysqld_port_t:tcp_socket name_connect;"
+      - "allow kolla_horizon_t memcache_port_t:tcp_socket name_connect;"
+      - "allow kolla_horizon_t commplex_main_port_t:tcp_socket name_connect;"
+      - "allow kolla_horizon_t ephemeral_port_t:tcp_socket name_connect;"
+      - "allow kolla_horizon_t http_cache_port_t:tcp_socket name_connect;"
+      - "allow kolla_horizon_t http_port_t:tcp_socket name_connect;"
+      - "allow kolla_horizon_t unlabeled_t:tcp_socket { read write };"

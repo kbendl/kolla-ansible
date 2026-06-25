@@ -1,0 +1,17 @@
+---
+- name: Check os version compatibility
+  ansible.builtin.debug:
+    msg: >-
+      **TODO**
+      Possibly check and report if:
+      - SELinux is enabled
+      - policies have not yet been compiled
+      - Distribution is RedHat-ish
+      - OS version is supported
+      - selinux utils version is supported
+
+
+# - name: Pre-Check systems for selinux deploy
+#   ansible.builtin.include_tasks:
+#   include_tasks:
+#     file: bootstrap.yml

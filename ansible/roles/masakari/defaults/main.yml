@@ -5,6 +5,7 @@ masakari_services:
     group: masakari-api
     enabled: true
     image: "{{ masakari_api_image_full }}"
+    privileged: "{{ not masakari_selinux_enable | bool }}"
     volumes: "{{ masakari_api_default_volumes + masakari_api_extra_volumes }}"
     dimensions: "{{ masakari_api_dimensions }}"
     healthcheck: "{{ masakari_api_healthcheck }}"
@@ -34,6 +35,7 @@ masakari_services:
     group: masakari-engine
     enabled: true
     image: "{{ masakari_engine_image_full }}"
+    privileged: "{{ not masakari_selinux_enable | bool }}"
     volumes: "{{ masakari_engine_default_volumes + masakari_engine_extra_volumes }}"
     dimensions: "{{ masakari_engine_dimensions }}"
   masakari-instancemonitor:
@@ -42,7 +44,7 @@ masakari_services:
     enabled: "{{ enable_masakari_instancemonitor | bool }}"
     image: "{{ masakari_monitors_image_full }}"
     volumes: "{{ masakari_instancemonitor_default_volumes + masakari_instancemonitor_extra_volumes }}"
-    privileged: true
+    privileged: "{{ not masakari_selinux_enable | bool }}"
     dimensions: "{{ masakari_instancemonitor_dimensions }}"
   masakari-hostmonitor:
     container_name: masakari_hostmonitor
@@ -50,6 +52,7 @@ masakari_services:
     enabled: "{{ enable_masakari_hostmonitor | bool }}"
     ipc_mode: host
     image: "{{ masakari_monitors_image_full }}"
+    privileged: "{{ not masakari_selinux_enable | bool }}"
     volumes: "{{ masakari_hostmonitor_default_volumes + masakari_hostmonitor_extra_volumes }}"
     dimensions: "{{ masakari_hostmonitor_dimensions }}"
 
@@ -213,3 +216,8 @@ masakari_database_enable_tls_internal: "{{ database_enable_tls_internal | bool }
 # Copy certificates
 ###################
 masakari_copy_certs: "{{ kolla_copy_ca_into_containers | bool or masakari_database_enable_tls_internal | bool }}"
+
+####################
+# Enable SELinux
+####################
+masakari_selinux_enable: "{{ kolla_masakari_selinux_enable | default(true) | bool }}"

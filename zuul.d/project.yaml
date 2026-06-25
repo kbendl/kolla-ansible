@@ -29,6 +29,7 @@
       - kolla-ansible-scenario-octavia
       - kolla-ansible-scenario-ovn
       - kolla-ansible-scenario-prometheus-opensearch
+      - kolla-ansible-scenario-selinux
       # NOTE(mnasiadka): SSO and non-SSO tests are failing
       #- kolla-ansible-scenario-skyline
       # NOTE: Master is not currently a SLURP release.

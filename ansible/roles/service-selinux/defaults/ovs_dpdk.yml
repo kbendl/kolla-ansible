@@ -1,0 +1,43 @@
+---
+kolla_selinux_policies_ovs_dpdk:
+  ovsdpdk_db:
+    enabled: "{{ enable_ovs_dpdk | default(false) | bool }}"
+    groups:
+      - "compute"
+    description: "SELinux domain for OVS-DPDK Database"
+    domain: "kolla_ovsdpdk_db_t"
+    exec_type: "kolla_ovsdpdk_db_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type proc_t;"
+      - "class tcp_socket { name_bind name_connect };"
+      - "class file { read open getattr };"
+    allow_rules:
+      - "allow kolla_ovsdpdk_db_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_ovsdpdk_db_t proc_t:file { read open getattr };"
+
+  ovsdpdk_vswitchd:
+    enabled: "{{ enable_ovs_dpdk | default(false) | bool }}"
+    groups:
+      - "compute"
+    description: "SELinux domain for OVS-DPDK vSwitch Daemon"
+    domain: "kolla_ovsdpdk_vswitchd_t"
+    exec_type: "kolla_ovsdpdk_vswitchd_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type proc_t;"
+      - "type device_t;"
+      - "type hugetlbfs_t;"
+      - "type sysfs_t;"
+      - "class capability { net_admin sys_admin ipc_lock };"
+      - "class file { read write open getattr ioctl map };"
+      - "class chr_file { read write open ioctl };"
+      - "class dir { read search getattr };"
+    allow_rules:
+      - "allow kolla_ovsdpdk_vswitchd_t self:capability { net_admin sys_admin ipc_lock };"
+      - "allow kolla_ovsdpdk_vswitchd_t proc_t:file { read open getattr };"
+      - "allow kolla_ovsdpdk_vswitchd_t device_t:chr_file { read write open ioctl };"
+      - "allow kolla_ovsdpdk_vswitchd_t hugetlbfs_t:file { read write open getattr map };"
+      - "allow kolla_ovsdpdk_vswitchd_t sysfs_t:dir { read search getattr };"
+      - "allow kolla_ovsdpdk_vswitchd_t sysfs_t:file { read open getattr };"

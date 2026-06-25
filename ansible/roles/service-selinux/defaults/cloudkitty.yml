@@ -1,0 +1,39 @@
+---
+kolla_selinux_policies_cloudkitty:
+  cloudkitty_api:
+    enabled: "{{ enable_cloudkitty | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for CloudKitty API service"
+    domain: "kolla_cloudkitty_api_t"
+    exec_type: "kolla_cloudkitty_api_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type proc_t;"
+      - "type mysqld_port_t;"
+      - "type amqp_port_t;"
+      - "class tcp_socket { name_bind name_connect };"
+      - "class file { read open getattr };"
+    allow_rules:
+      - "allow kolla_cloudkitty_api_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_cloudkitty_api_t mysqld_port_t:tcp_socket name_connect;"
+      - "allow kolla_cloudkitty_api_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_cloudkitty_api_t proc_t:file { read open getattr };"
+
+  cloudkitty_processor:
+    enabled: "{{ enable_cloudkitty | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for CloudKitty Processor"
+    domain: "kolla_cloudkitty_processor_t"
+    exec_type: "kolla_cloudkitty_processor_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type proc_t;"
+      - "type amqp_port_t;"
+      - "class tcp_socket { name_connect };"
+      - "class file { read open getattr };"
+    allow_rules:
+      - "allow kolla_cloudkitty_processor_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_cloudkitty_processor_t proc_t:file { read open getattr };"

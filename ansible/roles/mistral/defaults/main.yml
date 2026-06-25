@@ -5,6 +5,7 @@ mistral_services:
     group: mistral-api
     enabled: true
     image: "{{ mistral_api_image_full }}"
+    privileged: "{{ not mistral_selinux_enable | bool }}"
     volumes: "{{ mistral_api_default_volumes + mistral_api_extra_volumes }}"
     dimensions: "{{ mistral_api_dimensions }}"
     healthcheck: "{{ mistral_api_healthcheck }}"
@@ -34,6 +35,7 @@ mistral_services:
     group: mistral-engine
     enabled: true
     image: "{{ mistral_engine_image_full }}"
+    privileged: "{{ not mistral_selinux_enable | bool }}"
     volumes: "{{ mistral_engine_default_volumes + mistral_engine_extra_volumes }}"
     dimensions: "{{ mistral_engine_dimensions }}"
     healthcheck: "{{ mistral_engine_healthcheck }}"
@@ -42,6 +44,7 @@ mistral_services:
     group: mistral-event-engine
     enabled: true
     image: "{{ mistral_event_engine_image_full }}"
+    privileged: "{{ not mistral_selinux_enable | bool }}"
     volumes: "{{ mistral_event_engine_default_volumes + mistral_event_engine_extra_volumes }}"
     dimensions: "{{ mistral_event_engine_dimensions }}"
     healthcheck: "{{ mistral_event_engine_healthcheck }}"
@@ -50,6 +53,7 @@ mistral_services:
     group: mistral-executor
     enabled: true
     image: "{{ mistral_executor_image_full }}"
+    privileged: "{{ not mistral_selinux_enable | bool }}"
     volumes: "{{ mistral_executor_default_volumes + mistral_executor_extra_volumes }}"
     dimensions: "{{ mistral_executor_dimensions }}"
     healthcheck: "{{ mistral_executor_healthcheck }}"
@@ -246,3 +250,8 @@ mistral_database_enable_tls_internal: "{{ database_enable_tls_internal | bool }}
 # Copy certificates
 ###################
 mistral_copy_certs: "{{ kolla_copy_ca_into_containers | bool or mistral_database_enable_tls_internal | bool }}"
+
+####################
+# Enable SELinux
+####################
+mistral_selinux_enable: "{{ kolla_mistral_selinux_enable | default(true) | bool }}"

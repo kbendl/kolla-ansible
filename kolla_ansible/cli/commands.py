@@ -551,3 +551,22 @@ class MigrateContainerEngine(KollaAnsibleMixin, Command):
         playbooks = _choose_playbooks(parsed_args, "migrate-container-engine")
 
         self.run_playbooks(parsed_args, playbooks, extra_vars=extra_vars)
+
+
+class SetupSelinux(KollaAnsibleMixin, Command):
+    """Configure per-container SELinux policies."""
+
+    def take_action(self, parsed_args):
+        self.app.LOG.info("Setting up SELinux policies")
+
+        extra_vars = {}
+        extra_vars["ansible_python_interpreter"] = "auto_silent"
+
+        # Append selinux tag so only the SELinux play in site.yml runs
+        if parsed_args.tags:
+            parsed_args.tags += ",selinux"
+        else:
+            parsed_args.tags = "selinux"
+
+        playbooks = _choose_playbooks(parsed_args)  # defaults to "site"
+        self.run_playbooks(parsed_args, playbooks, extra_vars=extra_vars)

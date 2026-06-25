@@ -293,12 +293,15 @@ class DockerWorker(ContainerWorker):
             'ipc_mode': self.params.get('ipc_mode'),
             'cap_add': self.params.get('cap_add'),
             'group_add': self._resolved_group_add,
-            'security_opt': self.params.get('security_opt'),
             'pid_mode': self.params.get('pid_mode'),
             'privileged': self.params.get('privileged'),
             'tmpfs': self.generate_tmpfs(),
             'volumes_from': self.params.get('volumes_from')
         }
+
+        sec_opt = self._effective_security_opt()
+        if sec_opt:
+            options['security_opt'] = sec_opt
 
         dimensions = self.params.get('dimensions')
 

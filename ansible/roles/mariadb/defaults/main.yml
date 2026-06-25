@@ -5,6 +5,7 @@ mariadb_services:
     group: "{{ mariadb_shard_group }}"
     enabled: true
     image: "{{ mariadb_image_full }}"
+    privileged: "{{ not mariadb_selinux_enable | bool }}"
     volumes: "{{ mariadb_default_volumes + mariadb_extra_volumes }}"
     dimensions: "{{ mariadb_dimensions }}"
     healthcheck: "{{ mariadb_healthcheck }}"
@@ -103,3 +104,8 @@ mariadb_database_enable_tls_internal: "{{ database_enable_tls_internal | bool }}
 # Copy certificates
 ###################
 mariadb_copy_certs: "{{ kolla_copy_ca_into_containers | bool or database_enable_tls_backend | bool }}"
+
+####################
+# Enable SELinux
+####################
+mariadb_selinux_enable: "{{ kolla_mariadb_selinux_enable | default(true) | bool }}"

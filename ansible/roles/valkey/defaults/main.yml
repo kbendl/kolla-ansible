@@ -5,6 +5,7 @@ valkey_services:
     group: valkey
     enabled: true
     image: "{{ valkey_image_full }}"
+    privileged: "{{ not valkey_selinux_enable | bool }}"
     volumes: "{{ valkey_default_volumes + valkey_extra_volumes }}"
     dimensions: "{{ valkey_dimensions }}"
     healthcheck: "{{ valkey_healthcheck }}"
@@ -16,6 +17,7 @@ valkey_services:
       VALKEY_GEN_CONF: "{{ valkey_generated_conf_path }}"
     enabled: true
     image: "{{ valkey_sentinel_image_full }}"
+    privileged: "{{ not valkey_selinux_enable | bool }}"
     volumes: "{{ valkey_sentinel_default_volumes + valkey_sentinel_extra_volumes }}"
     dimensions: "{{ valkey_sentinel_dimensions }}"
     healthcheck: "{{ valkey_sentinel_healthcheck }}"
@@ -72,3 +74,8 @@ valkey_sentinel_extra_volumes: "{{ default_extra_volumes }}"
 
 valkey_conf_path: "/etc/valkey/valkey.conf"
 valkey_generated_conf_path: "/etc/valkey/valkey-regenerated-by-config-rewrite.conf"
+
+####################
+# Enable SELinux
+####################
+valkey_selinux_enable: "{{ kolla_valkey_selinux_enable | default(true) | bool }}"

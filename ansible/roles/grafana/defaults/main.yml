@@ -5,6 +5,7 @@ grafana_services:
     group: grafana
     enabled: true
     image: "{{ grafana_image_full }}"
+    privileged: "{{ not grafana_selinux_enable | bool }}"
     volumes: "{{ grafana_default_volumes + grafana_extra_volumes }}"
     dimensions: "{{ grafana_dimensions }}"
     healthcheck: "{{ grafana_healthcheck }}"
@@ -137,3 +138,8 @@ grafana_prometheus_url: "{{ internal_protocol }}://{{ kolla_internal_fqdn | put_
 # Copy certificates
 ###################
 grafana_copy_certs: "{{ kolla_copy_ca_into_containers | bool }}"
+
+####################
+# Enable SELinux
+####################
+grafana_selinux_enable: "{{ kolla_grafana_selinux_enable | default(true) | bool }}"

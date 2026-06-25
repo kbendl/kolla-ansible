@@ -311,7 +311,9 @@ class TestContainer(base.BaseTestCase):
         self.dw.create_container()
         self.assertTrue(self.dw.changed)
 
-    def test_create_container_with_dimensions(self):
+    @mock.patch.object(dwm.ContainerWorker, '_selinux_type_exists',
+                       return_value=True)
+    def test_create_container_with_dimensions(self, mock_exists):
         self.fake_data['params']['dimensions'] = {'blkio_weight': 10}
         self.dw = get_DockerWorker(self.fake_data['params'])
         self.dw.dc.create_host_config = mock.MagicMock(
@@ -329,7 +331,8 @@ class TestContainer(base.BaseTestCase):
         self.dw.dc.create_host_config.assert_called_with(
             cap_add=None, group_add=[], network_mode='host', ipc_mode=None,
             pid_mode=None, tmpfs=None, volumes_from=None, blkio_weight=10,
-            security_opt=None, privileged=None)
+            security_opt=['label=type:kolla_test_container_t'],
+            privileged=None)
 
     def test_create_container_wrong_dimensions(self):
         self.fake_data['params']['dimensions'] = {'random': 10}

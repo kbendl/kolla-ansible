@@ -5,6 +5,7 @@ cyborg_services:
     group: cyborg-api
     enabled: true
     image: "{{ cyborg_api_image_full }}"
+    privileged: "{{ not cyborg_selinux_enable | bool }}"
     volumes: "{{ cyborg_api_default_volumes + cyborg_api_extra_volumes }}"
     dimensions: "{{ cyborg_api_dimensions }}"
     healthcheck: "{{ cyborg_api_healthcheck }}"
@@ -33,7 +34,7 @@ cyborg_services:
     container_name: cyborg_agent
     group: cyborg-agent
     enabled: true
-    privileged: true
+    privileged: "{{ not cyborg_selinux_enable | bool }}"
     image: "{{ cyborg_agent_image_full }}"
     volumes: "{{ cyborg_agent_default_volumes + cyborg_agent_extra_volumes }}"
     dimensions: "{{ cyborg_agent_dimensions }}"
@@ -43,6 +44,7 @@ cyborg_services:
     group: cyborg-conductor
     enabled: true
     image: "{{ cyborg_conductor_image_full }}"
+    privileged: "{{ not cyborg_selinux_enable | bool }}"
     volumes: "{{ cyborg_conductor_default_volumes + cyborg_conductor_extra_volumes }}"
     dimensions: "{{ cyborg_conductor_dimensions }}"
     healthcheck: "{{ cyborg_conductor_healthcheck }}"
@@ -217,3 +219,9 @@ cyborg_database_enable_tls_internal: "{{ database_enable_tls_internal | bool }}"
 # Copy certificates
 ###################
 cyborg_copy_certs: "{{ kolla_copy_ca_into_containers | bool or cyborg_database_enable_tls_internal | bool }}"
+
+
+####################
+# Enable SELinux
+####################
+cyborg_selinux_enable: "{{ kolla_cyborg_selinux_enable | default(true) | bool }}"

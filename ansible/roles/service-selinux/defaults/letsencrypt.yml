@@ -1,0 +1,33 @@
+---
+kolla_selinux_policies_letsencrypt:
+  letsencrypt_lego:
+    enabled: "{{ enable_letsencrypt | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for LetsEncrypt Lego ACME client"
+    domain: "kolla_letsencrypt_lego_t"
+    exec_type: "kolla_letsencrypt_lego_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type var_run_t;"
+      - "class capability { net_bind_service };"
+      - "class tcp_socket { name_bind name_connect };"
+    allow_rules:
+      - "allow kolla_letsencrypt_lego_t self:capability net_bind_service;"
+      - "allow kolla_letsencrypt_lego_t port_t:tcp_socket { name_bind name_connect };"
+
+  letsencrypt_webserver:
+    enabled: "{{ enable_letsencrypt | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for LetsEncrypt webroot webserver"
+    domain: "kolla_letsencrypt_webserver_t"
+    exec_type: "kolla_letsencrypt_webserver_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type var_run_t;"
+      - "class tcp_socket { name_bind name_connect };"
+    allow_rules:
+      - "allow kolla_letsencrypt_webserver_t port_t:tcp_socket { name_bind name_connect };"

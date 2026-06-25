@@ -1,0 +1,49 @@
+---
+kolla_selinux_policies_rabbitmq:
+  rabbitmq:
+    enabled: "{{ enable_rabbitmq | default(true) | bool }}"
+    # RabbitMQ is a core control plane service
+    groups:
+      - "control"
+    description: "Dedicated SELinux domain for RabbitMQ Message Queue"
+    domain: "kolla_rabbitmq_t"
+    exec_type: "kolla_rabbitmq_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type node_t;"
+      - "type proc_t;"
+      - "type tmpfs_t;"
+      - "type epmd_port_t;"
+      - "type rabbitmq_port_t;"
+      - "type amqp_port_t;"
+      - "class tcp_socket { name_bind name_connect listen node_bind accept };"
+      - "class udp_socket { node_bind };"
+      - "class file { read open getattr map execute };"
+      - "class netlink_tcpdiag_socket { nlmsg_read };"
+      # Allow cluster joining
+      - "type proc_net_t;"
+      - "type unreserved_port_t;"
+
+    allow_rules:
+      - "allow kolla_rabbitmq_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_rabbitmq_t self:tcp_socket listen;"
+      # Erlang EPMD uses UDP for node discovery/binding
+      - "allow kolla_rabbitmq_t node_t:udp_socket node_bind;"
+      # EPMD also binds to node_t on TCP
+      - "allow kolla_rabbitmq_t node_t:tcp_socket node_bind;"
+      # Erlang VM requires access to proc_t for resource monitoring
+      - "allow kolla_rabbitmq_t proc_t:file { read open getattr };"
+      # Erlang VM requires tmpfs for memory-mapped files (memfd)
+      - "allow kolla_rabbitmq_t tmpfs_t:file { map execute };"
+      # Erlang Port Mapper Daemon (EPMD), port 4369 - bind + connect
+      - "allow kolla_rabbitmq_t epmd_port_t:tcp_socket { name_bind name_connect };"
+      # RabbitMQ clustering port (25672) - bind + connect
+      - "allow kolla_rabbitmq_t rabbitmq_port_t:tcp_socket { name_bind name_connect };"
+      # AMQP/management port (15672) - bind + connect
+      - "allow kolla_rabbitmq_t amqp_port_t:tcp_socket { name_bind name_connect };"
+      # Healthcheck tools (ss) need to query TCP socket diagnostics
+      - "allow kolla_rabbitmq_t self:netlink_tcpdiag_socket nlmsg_read;"
+      # Allow cluster joining
+      - "allow kolla_rabbitmq_t proc_net_t:file read;"
+      - "allow kolla_rabbitmq_t unreserved_port_t:tcp_socket { name_bind name_connect };"

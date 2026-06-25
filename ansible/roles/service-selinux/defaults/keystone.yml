@@ -1,0 +1,99 @@
+---
+
+kolla_selinux_policies_keystone:
+  keystone:
+    _helpers:
+      - bootstrap_keystone
+      - keystone_ssh
+    enabled: "{{ enable_keystone | default(true) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Keystone API"
+    domain: "kolla_keystone_t"
+    exec_type: "kolla_keystone_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type node_t;"
+      - "type proc_t;"
+      - "type mysqld_port_t;"
+      - "type ephemeral_port_t;"
+      - "type commplex_main_port_t;"
+      - "type amqp_port_t;"
+      - "class tcp_socket { name_bind name_connect node_bind listen };"
+      - "class dir { read search getattr };"
+      - "class file { read open getattr ioctl };"
+      - "type memcache_port_t;"
+      - "class process { execmem };"
+      - "class netlink_tcpdiag_socket { nlmsg_read };"
+    allow_rules:
+      - "allow kolla_keystone_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_keystone_t node_t:tcp_socket node_bind;"
+      - "allow kolla_keystone_t proc_t:file { read open getattr ioctl };"
+      - "allow kolla_keystone_t mysqld_port_t:tcp_socket name_connect;"
+      - "allow kolla_keystone_t ephemeral_port_t:tcp_socket name_connect;"
+      - "allow kolla_keystone_t commplex_main_port_t:tcp_socket name_connect;"
+      - "allow kolla_keystone_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_keystone_t memcache_port_t:tcp_socket name_connect;"
+      - "allow kolla_keystone_t self:process execmem;"
+      - "allow kolla_keystone_t self:netlink_tcpdiag_socket nlmsg_read;"
+      - "allow kolla_keystone_t commplex_main_port_t:tcp_socket name_bind;"
+      - "allow kolla_keystone_t self:tcp_socket listen;"
+
+  keystone_api:
+    enabled: "{{ enable_keystone_api | default(true) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Keystone API"
+    domain: "kolla_keystone_api_t"
+    exec_type: "kolla_keystone_api_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type node_t;"
+      - "type proc_t;"
+      - "type mysqld_port_t;"
+      - "type ephemeral_port_t;"
+      - "type commplex_main_port_t;"
+      - "type amqp_port_t;"
+      - "class tcp_socket { name_bind name_connect node_bind listen };"
+      - "class dir { read search getattr };"
+      - "class file { read open getattr ioctl };"
+      - "type memcache_port_t;"
+      - "class process { execmem };"
+      - "class netlink_tcpdiag_socket { nlmsg_read };"
+    allow_rules:
+      - "allow kolla_keystone_api_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_keystone_api_t node_t:tcp_socket node_bind;"
+      - "allow kolla_keystone_api_t proc_t:file { read open getattr ioctl };"
+      - "allow kolla_keystone_api_t mysqld_port_t:tcp_socket name_connect;"
+      - "allow kolla_keystone_api_t ephemeral_port_t:tcp_socket name_connect;"
+      - "allow kolla_keystone_api_t commplex_main_port_t:tcp_socket name_connect;"
+      - "allow kolla_keystone_api_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_keystone_api_t memcache_port_t:tcp_socket name_connect;"
+      - "allow kolla_keystone_api_t self:process execmem;"
+      - "allow kolla_keystone_api_t self:netlink_tcpdiag_socket nlmsg_read;"
+      - "allow kolla_keystone_api_t commplex_main_port_t:tcp_socket name_bind;"
+      - "allow kolla_keystone_api_t self:tcp_socket listen;"
+
+  keystone_fernet:
+    _helpers:
+      - bootstrap_keystone_fernet
+    enabled: "{{ enable_keystone | default(true) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Keystone Fernet Key rotation"
+    domain: "kolla_keystone_fernet_t"
+    exec_type: "kolla_keystone_fernet_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type proc_t;"
+      - "class capability { chown dac_override fowner fsetid };"
+      - "class dir { read write add_name remove_name search };"
+      - "class file { read write create getattr unlink open setattr };"
+      - "class tcp_socket { node_bind };"
+      - "type node_t;"
+    allow_rules:
+      - "allow kolla_keystone_fernet_t self:capability { chown dac_override fowner fsetid };"
+      - "allow kolla_keystone_fernet_t proc_t:file { read open getattr };"
+      - "allow kolla_keystone_fernet_t node_t:tcp_socket node_bind;"

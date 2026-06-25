@@ -1,0 +1,22 @@
+---
+- job:
+    name: kolla-ansible-rocky-10-selinux
+    parent: kolla-ansible-aio-base
+    nodeset: kolla-ansible-rocky-10-16GB
+    voting: false
+    files: !inherit
+      - ^ansible/roles/service-selinux/
+      - ^ansible/group_vars/all/selinux.yml
+      - ^tests/test-selinux.sh
+    vars:
+      enable_selinux: true
+      selinux_test_enabled: true
+      selinux_time_window_minutes: 60
+
+- project-template:
+    name: kolla-ansible-scenario-selinux
+    description: |
+      Runs Kolla-Ansible SELinux denial-audit scenario jobs.
+    check:
+      jobs:
+        - kolla-ansible-rocky-10-selinux

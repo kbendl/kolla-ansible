@@ -1,0 +1,130 @@
+---
+kolla_selinux_policies_octavia:
+  octavia_api:
+    _helpers:
+      - octavia_bootstrap
+    enabled: "{{ enable_octavia | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Octavia API service"
+    domain: "kolla_octavia_api_t"
+    exec_type: "kolla_octavia_api_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type node_t;"
+      - "type proc_t;"
+      - "type mysqld_port_t;"
+      - "type memcache_port_t;"
+      - "type amqp_port_t;"
+      - "type ephemeral_port_t;"
+      - "type unreserved_port_t;"
+      - "class tcp_socket { name_bind name_connect node_bind listen };"
+      - "class file { read open getattr ioctl };"
+      - "type commplex_main_port_t;"
+    allow_rules:
+      - "allow kolla_octavia_api_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_octavia_api_t node_t:tcp_socket node_bind;"
+      - "allow kolla_octavia_api_t mysqld_port_t:tcp_socket name_connect;"
+      - "allow kolla_octavia_api_t memcache_port_t:tcp_socket name_connect;"
+      - "allow kolla_octavia_api_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_octavia_api_t ephemeral_port_t:tcp_socket name_connect;"
+      - "allow kolla_octavia_api_t unreserved_port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_octavia_api_t self:tcp_socket listen;"
+      - "allow kolla_octavia_api_t proc_t:file { read open getattr ioctl };"
+      - "allow kolla_octavia_api_t commplex_main_port_t:tcp_socket name_connect;"
+
+  octavia_driver_agent:
+    enabled: "{{ enable_octavia | default(false) | bool }}"
+    groups:
+      - "network"
+      - "control"
+    description: "SELinux domain for Octavia Driver Agent"
+    domain: "kolla_octavia_driver_agent_t"
+    exec_type: "kolla_octavia_driver_agent_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type proc_t;"
+      - "type amqp_port_t;"
+      - "class tcp_socket { name_connect };"
+      - "class file { read open getattr };"
+    allow_rules:
+      - "allow kolla_octavia_driver_agent_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_octavia_driver_agent_t proc_t:file { read open getattr };"
+
+  octavia_health_manager:
+    enabled: "{{ enable_octavia | default(false) | bool }}"
+    groups:
+      - "network"
+      - "control"
+    description: "SELinux domain for Octavia Health Manager"
+    domain: "kolla_octavia_health_manager_t"
+    exec_type: "kolla_octavia_health_manager_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type node_t;"
+      - "type proc_t;"
+      - "type mysqld_port_t;"
+      - "type unreserved_port_t;"
+      - "class tcp_socket { name_bind name_connect node_bind };"
+      - "class udp_socket { name_bind node_bind };"
+      - "class file { read open getattr ioctl };"
+      - "class netlink_tcpdiag_socket { nlmsg_read };"
+    allow_rules:
+      - "allow kolla_octavia_health_manager_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_octavia_health_manager_t port_t:udp_socket name_bind;"
+      - "allow kolla_octavia_health_manager_t node_t:tcp_socket node_bind;"
+      - "allow kolla_octavia_health_manager_t node_t:udp_socket node_bind;"
+      - "allow kolla_octavia_health_manager_t mysqld_port_t:tcp_socket name_connect;"
+      - "allow kolla_octavia_health_manager_t unreserved_port_t:udp_socket name_bind;"
+      - "allow kolla_octavia_health_manager_t self:netlink_tcpdiag_socket nlmsg_read;"
+      - "allow kolla_octavia_health_manager_t proc_t:file { read open getattr ioctl };"
+
+  octavia_housekeeping:
+    enabled: "{{ enable_octavia | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Octavia Housekeeping"
+    domain: "kolla_octavia_housekeeping_t"
+    exec_type: "kolla_octavia_housekeeping_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type node_t;"
+      - "type proc_t;"
+      - "type mysqld_port_t;"
+      - "type amqp_port_t;"
+      - "class tcp_socket { name_connect node_bind };"
+      - "class file { read open getattr ioctl };"
+      - "class netlink_tcpdiag_socket { nlmsg_read };"
+    allow_rules:
+      - "allow kolla_octavia_housekeeping_t node_t:tcp_socket node_bind;"
+      - "allow kolla_octavia_housekeeping_t mysqld_port_t:tcp_socket name_connect;"
+      - "allow kolla_octavia_housekeeping_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_octavia_housekeeping_t self:netlink_tcpdiag_socket nlmsg_read;"
+      - "allow kolla_octavia_housekeeping_t proc_t:file { read open getattr ioctl };"
+
+  octavia_worker:
+    enabled: "{{ enable_octavia | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Octavia Worker"
+    domain: "kolla_octavia_worker_t"
+    exec_type: "kolla_octavia_worker_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type node_t;"
+      - "type proc_t;"
+      - "type mysqld_port_t;"
+      - "type redis_port_t;"
+      - "type amqp_port_t;"
+      - "class tcp_socket { name_connect node_bind };"
+      - "class file { read open getattr ioctl };"
+      - "class netlink_tcpdiag_socket { nlmsg_read };"
+    allow_rules:
+      - "allow kolla_octavia_worker_t node_t:tcp_socket node_bind;"
+      - "allow kolla_octavia_worker_t mysqld_port_t:tcp_socket name_connect;"
+      - "allow kolla_octavia_worker_t redis_port_t:tcp_socket name_connect;"
+      - "allow kolla_octavia_worker_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_octavia_worker_t self:netlink_tcpdiag_socket nlmsg_read;"
+      - "allow kolla_octavia_worker_t proc_t:file { read open getattr ioctl };"

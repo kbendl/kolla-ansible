@@ -1,0 +1,61 @@
+---
+kolla_selinux_policies_cyborg:
+  cyborg_api:
+    enabled: "{{ enable_cyborg | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Cyborg API service"
+    domain: "kolla_cyborg_api_t"
+    exec_type: "kolla_cyborg_api_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type proc_t;"
+      - "type mysqld_port_t;"
+      - "type amqp_port_t;"
+      - "class tcp_socket { name_bind name_connect };"
+      - "class file { read open getattr };"
+    allow_rules:
+      - "allow kolla_cyborg_api_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_cyborg_api_t mysqld_port_t:tcp_socket name_connect;"
+      - "allow kolla_cyborg_api_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_cyborg_api_t proc_t:file { read open getattr };"
+
+  cyborg_agent:
+    enabled: "{{ enable_cyborg | default(false) | bool }}"
+    groups:
+      - "compute"
+    description: "SELinux domain for Cyborg Agent"
+    domain: "kolla_cyborg_agent_t"
+    exec_type: "kolla_cyborg_agent_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type proc_t;"
+      - "type amqp_port_t;"
+      - "type device_t;"
+      - "class capability { sys_admin };"
+      - "class tcp_socket { name_connect };"
+      - "class file { read open getattr };"
+      - "class chr_file { read write open ioctl };"
+    allow_rules:
+      - "allow kolla_cyborg_agent_t self:capability sys_admin;"
+      - "allow kolla_cyborg_agent_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_cyborg_agent_t proc_t:file { read open getattr };"
+      - "allow kolla_cyborg_agent_t device_t:chr_file { read write open ioctl };"
+
+  cyborg_conductor:
+    enabled: "{{ enable_cyborg | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Cyborg Conductor"
+    domain: "kolla_cyborg_conductor_t"
+    exec_type: "kolla_cyborg_conductor_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type proc_t;"
+      - "type amqp_port_t;"
+      - "class tcp_socket { name_connect };"
+      - "class file { read open getattr };"
+    allow_rules:
+      - "allow kolla_cyborg_conductor_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_cyborg_conductor_t proc_t:file { read open getattr };"

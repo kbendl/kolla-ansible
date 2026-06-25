@@ -1,0 +1,112 @@
+---
+aodh_selinux_enable: true
+kolla_selinux_policies_aodh:
+  aodh_api:
+    _helpers:
+      - bootstrap_aodh
+    enabled: "{{ enable_aodh | default(true) | bool }}"
+    groups:
+      - "control"
+    description: "Dedicated SELinux domain for Aodh API"
+    domain: "kolla_aodh_api_t"
+    exec_type: "kolla_aodh_api_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type proc_t;"
+      - "type ephemeral_port_t;"
+      - "type unreserved_port_t;"
+      - "type node_t;"
+      - "type mysqld_port_t;"
+      - "class tcp_socket { name_bind name_connect node_bind };"
+      - "class file { read open getattr ioctl };"
+    allow_rules:
+      - "allow kolla_aodh_api_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_aodh_api_t ephemeral_port_t:tcp_socket name_connect;"
+      - "allow kolla_aodh_api_t unreserved_port_t:tcp_socket name_connect;"
+      - "allow kolla_aodh_api_t proc_t:file { read open getattr ioctl };"
+      - "allow kolla_aodh_api_t node_t:tcp_socket node_bind;"
+      - "allow kolla_aodh_api_t mysqld_port_t:tcp_socket name_connect;"
+
+  aodh_notifier:
+    enabled: "{{ enable_aodh | default(true) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Aodh Notification Agent"
+    domain: "kolla_aodh_notifier_t"
+    exec_type: "kolla_aodh_notifier_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type proc_t;"
+      - "type amqp_port_t;"
+      - "type mysqld_port_t;"
+      - "type commplex_main_port_t;"
+      - "type unreserved_port_t;"
+      - "type node_t;"
+      - "class tcp_socket { name_connect node_bind };"
+      - "class file { read open getattr ioctl };"
+      - "class netlink_tcpdiag_socket { nlmsg_read };"
+      - "type unlabeled_t;"
+    allow_rules:
+      - "allow kolla_aodh_notifier_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_aodh_notifier_t mysqld_port_t:tcp_socket name_connect;"
+      - "allow kolla_aodh_notifier_t commplex_main_port_t:tcp_socket name_connect;"
+      - "allow kolla_aodh_notifier_t unreserved_port_t:tcp_socket name_connect;"
+      - "allow kolla_aodh_notifier_t proc_t:file { read open getattr ioctl };"
+      - "allow kolla_aodh_notifier_t self:netlink_tcpdiag_socket nlmsg_read;"
+      - "allow kolla_aodh_notifier_t node_t:tcp_socket node_bind;"
+      - "allow kolla_aodh_notifier_t unlabeled_t:tcp_socket { getattr read write };"
+
+  aodh_listener:
+    enabled: "{{ enable_aodh | default(true) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Aodh Event Listener"
+    domain: "kolla_aodh_listener_t"
+    exec_type: "kolla_aodh_listener_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type proc_t;"
+      - "type amqp_port_t;"
+      - "type mysqld_port_t;"
+      - "type commplex_main_port_t;"
+      - "type unreserved_port_t;"
+      - "type node_t;"
+      - "class tcp_socket { name_connect node_bind };"
+      - "class file { read open getattr ioctl };"
+      - "class netlink_tcpdiag_socket { nlmsg_read };"
+    allow_rules:
+      - "allow kolla_aodh_listener_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_aodh_listener_t mysqld_port_t:tcp_socket name_connect;"
+      - "allow kolla_aodh_listener_t commplex_main_port_t:tcp_socket name_connect;"
+      - "allow kolla_aodh_listener_t unreserved_port_t:tcp_socket name_connect;"
+      - "allow kolla_aodh_listener_t proc_t:file { read open getattr ioctl };"
+      - "allow kolla_aodh_listener_t self:netlink_tcpdiag_socket nlmsg_read;"
+      - "allow kolla_aodh_listener_t node_t:tcp_socket node_bind;"
+
+  aodh_evaluator:
+    enabled: "{{ enable_aodh | default(true) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Aodh Alarm Evaluator"
+    domain: "kolla_aodh_evaluator_t"
+    exec_type: "kolla_aodh_evaluator_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type proc_t;"
+      - "type amqp_port_t;"
+      - "type mysqld_port_t;"
+      - "type commplex_main_port_t;"
+      - "type unreserved_port_t;"
+      - "type node_t;"
+      - "class tcp_socket { name_connect node_bind };"
+      - "class file { read open getattr ioctl };"
+      - "class netlink_tcpdiag_socket { nlmsg_read };"
+    allow_rules:
+      - "allow kolla_aodh_evaluator_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_aodh_evaluator_t mysqld_port_t:tcp_socket name_connect;"
+      - "allow kolla_aodh_evaluator_t commplex_main_port_t:tcp_socket name_connect;"
+      - "allow kolla_aodh_evaluator_t unreserved_port_t:tcp_socket name_connect;"
+      - "allow kolla_aodh_evaluator_t proc_t:file { read open getattr ioctl };"
+      - "allow kolla_aodh_evaluator_t self:netlink_tcpdiag_socket nlmsg_read;"
+      - "allow kolla_aodh_evaluator_t node_t:tcp_socket node_bind;"

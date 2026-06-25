@@ -6,6 +6,7 @@ tacker_services:
     host_in_groups: "{{ inventory_hostname in tacker_hosts }}"
     enabled: true
     image: "{{ tacker_server_image_full }}"
+    privileged: "{{ not tacker_selinux_enable | bool }}"
     volumes: "{{ tacker_server_default_volumes + tacker_server_extra_volumes }}"
     dimensions: "{{ tacker_server_dimensions }}"
     healthcheck: "{{ tacker_server_healthcheck }}"
@@ -37,6 +38,7 @@ tacker_services:
     host_in_groups: "{{ inventory_hostname in tacker_hosts }}"
     enabled: true
     image: "{{ tacker_conductor_image_full }}"
+    privileged: "{{ not tacker_selinux_enable | bool }}"
     volumes: "{{ tacker_conductor_default_volumes + tacker_conductor_extra_volumes }}"
     dimensions: "{{ tacker_conductor_dimensions }}"
     healthcheck: "{{ tacker_conductor_healthcheck }}"
@@ -200,3 +202,8 @@ tacker_database_enable_tls_internal: "{{ database_enable_tls_internal | bool }}"
 # Copy certificates
 ###################
 tacker_copy_certs: "{{ kolla_copy_ca_into_containers | bool or tacker_database_enable_tls_internal | bool }}"
+
+####################
+# Enable SELinux
+####################
+tacker_selinux_enable: "{{ kolla_tacker_selinux_enable | default(true) | bool }}"

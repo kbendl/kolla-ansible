@@ -15,7 +15,10 @@ from abc import abstractmethod
 import grp
 import logging
 import os
+import re
 import shlex
+import shutil
+import subprocess  # nosec
 
 from ansible.module_utils.kolla_systemd_worker import SystemdWorker
 
@@ -24,6 +27,25 @@ LOG = logging.getLogger(__name__)
 
 
 class ContainerWorker(ABC):
+    @classmethod
+    def _selinux_type_exists(cls, type_name):
+        """Does type_name (type or alias) exist in loaded policy
+
+        or `None` when `seinfo` is unavailable.
+        """
+        try:
+            seinfo = shutil.which('seinfo')
+            if seinfo is None:
+                return None
+            output = subprocess.check_output(  # nosec B603
+                [seinfo, '-t', type_name],
+                stderr=subprocess.DEVNULL, timeout=10, text=True
+            )
+        except (FileNotFoundError, subprocess.CalledProcessError,
+                subprocess.TimeoutExpired, OSError):
+            return None
+        return bool(re.search(r'^Types:\s+[1-9]', output, re.MULTILINE))
+
     def __init__(self, module):
         self.module = module
         self.params = self.module.params
@@ -171,9 +193,57 @@ class ContainerWorker(ABC):
         current = self._get_host_config_list(container_info, 'GroupAdd')
         return sorted(current), sorted(self._resolved_group_add)
 
+    def _effective_security_opt(self):
+        """Return the effective security_opt list.
+
+        Auto-generates an SELinux label when none is explicitly set.
+        When the container is privileged, SELinux labeling is not used.
+
+        If the auto-generated label type is not found in the loaded
+        SELinux policy, a warning is logged and the label is skipped
+        so that the container does not run with a non-existent domain.
+        """
+        if self.params.get('privileged', False):
+            return []
+        sec_opt = self.params.get('security_opt') or []
+        name = self.params.get('name')
+        if not sec_opt and name:
+            # Strip common affixes so bootstrap/helper containers reuse
+            # the SELinux domain of their parent service.
+            for prefix in ('bootstrap_', 'init_upgrade_', 'finish_upgrade_'):
+                if name.startswith(prefix):
+                    name = name[len(prefix):]
+                    break
+            for suffix in ('_bootstrap',):
+                if name.endswith(suffix):
+                    name = name[:-len(suffix)]
+                    break
+            label_type = 'kolla_{}_t'.format(name)
+            # Validate that the generated type exists in the loaded policy,
+            # resolving typealiases via a per-type query.
+            exists = self._selinux_type_exists(label_type)
+            if exists is None:
+                # seinfo not available - cannot validate; apply label
+                # optimistically (preserve pre-existing behaviour).
+                return ['label=type:{}'.format(label_type)]
+            if not exists:
+                LOG.warning(
+                    "SELinux type '%s' not found in loaded policy; "
+                    "container '%s' will not receive an SELinux label. "
+                    "Define the type or add a _helper alias in a "
+                    "service-selinux policy to enable enforcement.",
+                    label_type, self.params.get('name')
+                )
+                return []
+            return ['label=type:{}'.format(label_type)]
+        return list(sec_opt)
+
     def diff_security_opt(self, container_info):
-        current = self._get_host_config_list(container_info, 'SecurityOpt')
-        return sorted(current), sorted(self.params.get('security_opt', []))
+        try:
+            current = container_info['HostConfig'].get('SecurityOpt') or []
+        except (KeyError, TypeError):
+            current = []
+        return sorted(current), sorted(self._effective_security_opt())
 
     def diff_image(self, container_info):
         current = (container_info.get('Image') or
@@ -307,7 +377,11 @@ class ContainerWorker(ABC):
         # host pid mode or privileged. So no need to compare security opts
         if ipc_mode == 'host' or pid_mode == 'host' or privileged:
             return False
-        new_sec_opt = self.params.get('security_opt', list())
+        new_sec_opt = self._effective_security_opt()
+        # When no valid label can be applied (e.g. type not in loaded policy),
+        # don't report a diff — there's nothing we can do to fix it.
+        if not new_sec_opt:
+            return False
         try:
             current_sec_opt = container_info['HostConfig'].get('SecurityOpt',
                                                                list())

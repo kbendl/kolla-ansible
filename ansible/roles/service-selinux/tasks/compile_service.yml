@@ -1,0 +1,25 @@
+---
+# Phase 1: Template generation only.
+# Compilation (phase 2) is handled by compile_all.yml, which runs
+# checksum-based caching and parallel make after all .te files are ready.
+- name: "Set policy facts for {{ current_selinux_service }}"
+  ansible.builtin.set_fact:
+    current_policies: "{{ lookup('vars', 'kolla_selinux_policies_'
+      + current_selinux_service, default={}) }}"
+
+- name: "Generate a Type Enforcement (.te) file for {{ current_selinux_service }}"
+  ansible.builtin.template:
+    src: "kolla_selinux_profile.te.j2"
+    dest: "{{ selinux_profile_build_dir }}/kolla_{{ policy.key }}.te"
+    mode: '0644'
+  become: true
+  loop: "{{ current_policies | dict2items }}"
+  loop_control:
+    loop_var: policy
+  when:
+    - policy.value.enabled
+    - policy.value.groups is defined and ((
+      policy.value.groups + policy.value.groups
+      | map('replace', '_', '-') | list)
+      | intersect(group_names)
+      | length > 0 )

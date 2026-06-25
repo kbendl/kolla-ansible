@@ -32,6 +32,8 @@
     labels:
       BOOTSTRAP:
     name: "bootstrap_glance"
+    security_opt:
+      - "label=type:kolla_glance_api_t"
     restart_policy: oneshot
     volumes: "{{ glance_api.volumes | reject('equalto', '') | list }}"
   run_once: true

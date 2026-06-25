@@ -5,6 +5,7 @@ designate_services:
     group: designate-api
     enabled: true
     image: "{{ designate_api_image_full }}"
+    privileged: "{{ not designate_selinux_enable | bool }}"
     volumes: "{{ designate_api_default_volumes + designate_api_extra_volumes }}"
     dimensions: "{{ designate_api_dimensions }}"
     healthcheck: "{{ designate_api_healthcheck }}"
@@ -36,6 +37,7 @@ designate_services:
     group: designate-backend-bind9
     enabled: "{{ designate_backend == 'bind9' }}"
     image: "{{ designate_backend_bind9_image_full }}"
+    privileged: "{{ not designate_selinux_enable | bool }}"
     volumes: "{{ designate_backend_bind9_default_volumes + designate_backend_bind9_extra_volumes }}"
     dimensions: "{{ designate_backend_bind9_dimensions }}"
     healthcheck: "{{ designate_backend_bind9_healthcheck }}"
@@ -44,6 +46,7 @@ designate_services:
     group: designate-central
     enabled: true
     image: "{{ designate_central_image_full }}"
+    privileged: "{{ not designate_selinux_enable | bool }}"
     volumes: "{{ designate_central_default_volumes + designate_central_extra_volumes }}"
     dimensions: "{{ designate_central_dimensions }}"
     healthcheck: "{{ designate_central_healthcheck }}"
@@ -52,6 +55,7 @@ designate_services:
     group: designate-mdns
     enabled: true
     image: "{{ designate_mdns_image_full }}"
+    privileged: "{{ not designate_selinux_enable | bool }}"
     volumes: "{{ designate_mdns_default_volumes + designate_mdns_extra_volumes }}"
     dimensions: "{{ designate_mdns_dimensions }}"
     healthcheck: "{{ designate_mdns_healthcheck }}"
@@ -60,6 +64,7 @@ designate_services:
     group: designate-producer
     enabled: true
     image: "{{ designate_producer_image_full }}"
+    privileged: "{{ not designate_selinux_enable | bool }}"
     volumes: "{{ designate_producer_default_volumes + designate_producer_extra_volumes }}"
     dimensions: "{{ designate_producer_dimensions }}"
     healthcheck: "{{ designate_producer_healthcheck }}"
@@ -68,6 +73,7 @@ designate_services:
     group: designate-worker
     enabled: true
     image: "{{ designate_worker_image_full }}"
+    privileged: "{{ not designate_selinux_enable | bool }}"
     volumes: "{{ designate_worker_default_volumes + designate_worker_extra_volumes }}"
     dimensions: "{{ designate_worker_dimensions }}"
     healthcheck: "{{ designate_worker_healthcheck }}"
@@ -76,6 +82,7 @@ designate_services:
     group: designate-sink
     enabled: "{{ designate_enable_notifications_sink | bool }}"
     image: "{{ designate_sink_image_full }}"
+    privileged: "{{ not designate_selinux_enable | bool }}"
     volumes: "{{ designate_sink_default_volumes + designate_sink_extra_volumes }}"
     dimensions: "{{ designate_sink_dimensions }}"
     healthcheck: "{{ designate_sink_healthcheck }}"
@@ -378,3 +385,9 @@ designate_copy_certs: "{{ kolla_copy_ca_into_containers | bool or designate_data
 # TLS
 ###################
 designate_enable_tls_backend: "{{ kolla_enable_tls_backend }}"
+
+
+###################
+# Enable SELinux
+###################
+designate_selinux_enable: "{{ kolla_designate_selinux_enable | default(true) | bool }}"

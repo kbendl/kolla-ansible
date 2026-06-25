@@ -1,0 +1,76 @@
+---
+kolla_selinux_policies_gnocchi:
+  gnocchi_api:
+    enabled: "{{ enable_gnocchi | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Gnocchi API service"
+    domain: "kolla_gnocchi_api_t"
+    exec_type: "kolla_gnocchi_api_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type proc_t;"
+      - "type mysqld_port_t;"
+      - "type ephemeral_port_t;"
+      - "type unreserved_port_t;"
+      - "type redis_port_t;"
+      - "type memcache_port_t;"
+      - "type commplex_main_port_t;"
+      - "class tcp_socket { name_bind name_connect };"
+      - "class file { read open getattr };"
+      - "type unlabeled_t;"
+    allow_rules:
+      - "allow kolla_gnocchi_api_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_gnocchi_api_t mysqld_port_t:tcp_socket name_connect;"
+      - "allow kolla_gnocchi_api_t ephemeral_port_t:tcp_socket name_connect;"
+      - "allow kolla_gnocchi_api_t unreserved_port_t:tcp_socket name_connect;"
+      - "allow kolla_gnocchi_api_t redis_port_t:tcp_socket name_connect;"
+      - "allow kolla_gnocchi_api_t memcache_port_t:tcp_socket name_connect;"
+      - "allow kolla_gnocchi_api_t commplex_main_port_t:tcp_socket name_connect;"
+      - "allow kolla_gnocchi_api_t proc_t:file { read open getattr };"
+      - "allow kolla_gnocchi_api_t unlabeled_t:tcp_socket { read write };"
+
+  gnocchi_metricd:
+    enabled: "{{ enable_gnocchi | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Gnocchi Metric Daemon"
+    domain: "kolla_gnocchi_metricd_t"
+    exec_type: "kolla_gnocchi_metricd_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type proc_t;"
+      - "type mysqld_port_t;"
+      - "class tcp_socket { name_connect };"
+      - "class file { read open getattr };"
+      - "class netlink_tcpdiag_socket { nlmsg_read };"
+      - "type redis_port_t;"
+      - "type unlabeled_t;"
+    allow_rules:
+      - "allow kolla_gnocchi_metricd_t mysqld_port_t:tcp_socket name_connect;"
+      - "allow kolla_gnocchi_metricd_t proc_t:file { read open getattr };"
+      - "allow kolla_gnocchi_metricd_t self:netlink_tcpdiag_socket nlmsg_read;"
+      - "allow kolla_gnocchi_metricd_t redis_port_t:tcp_socket name_connect;"
+      - "allow kolla_gnocchi_metricd_t unlabeled_t:tcp_socket { getattr read write };"
+
+  gnocchi_statsd:
+    enabled: "{{ enable_gnocchi | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Gnocchi Statsd endpoint"
+    domain: "kolla_gnocchi_statsd_t"
+    exec_type: "kolla_gnocchi_statsd_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type proc_t;"
+      - "class tcp_socket { name_bind name_connect };"
+      - "class udp_socket { name_bind };"
+      - "class file { read open getattr };"
+      - "class netlink_tcpdiag_socket { nlmsg_read };"
+    allow_rules:
+      - "allow kolla_gnocchi_statsd_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_gnocchi_statsd_t port_t:udp_socket name_bind;"
+      - "allow kolla_gnocchi_statsd_t proc_t:file { read open getattr };"
+      - "allow kolla_gnocchi_statsd_t self:netlink_tcpdiag_socket nlmsg_read;"

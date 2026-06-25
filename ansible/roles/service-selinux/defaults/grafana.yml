@@ -1,0 +1,42 @@
+---
+kolla_selinux_policies_grafana:
+  grafana:
+    enabled: "{{ enable_grafana | default(true) | bool }}"
+    groups:
+      - "monitoring"
+      - "control"
+    description: "SELinux domain for Grafana UI"
+    domain: "kolla_grafana_t"
+    exec_type: "kolla_grafana_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type http_port_t;"
+      - "type node_t;"
+      - "type proc_t;"
+      - "type unreserved_port_t;"
+      - "type mysqld_port_t;"
+      - "type memcache_port_t;"
+      - "type ntop_port_t;"
+      - "class tcp_socket { name_bind name_connect listen node_bind };"
+      - "class file { read open getattr };"
+    allow_rules:
+      # Bind to Grafana's web UI port (default 3000)
+      - "allow kolla_grafana_t port_t:tcp_socket name_bind;"
+      # Outbound connections to data sources (Prometheus, OpenSearch, etc.)
+      - "allow kolla_grafana_t port_t:tcp_socket name_connect;"
+      # Outbound connections to backends on non-standard ports
+      - "allow kolla_grafana_t unreserved_port_t:tcp_socket name_connect;"
+      # MySQL/MariaDB datasource access
+      - "allow kolla_grafana_t mysqld_port_t:tcp_socket name_connect;"
+      # Memcached datasource access
+      - "allow kolla_grafana_t memcache_port_t:tcp_socket name_connect;"
+      # Local health-check connection to port 3000 (labeled ntop_port_t)
+      - "allow kolla_grafana_t ntop_port_t:tcp_socket name_connect;"
+      # Outbound HTTPS connections (OAuth, external datasources on standard ports)
+      - "allow kolla_grafana_t http_port_t:tcp_socket name_connect;"
+      # Allow reading /proc for process/CPU metrics used in dashboard variables
+      - "allow kolla_grafana_t proc_t:file { read open getattr };"
+      - "allow kolla_grafana_t self:tcp_socket listen;"
+      - "allow kolla_grafana_t node_t:tcp_socket node_bind;"
+      - "allow kolla_grafana_t ntop_port_t:tcp_socket name_bind;"

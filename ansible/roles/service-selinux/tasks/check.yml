@@ -1,0 +1,8 @@
+---
+- name: Checking systems for selinux setup and packages
+  ansible.builtin.include_tasks:
+    file: bootstrap.yml
+
+- name: Checking systems have selinux policies installed
+  ansible.builtin.include_tasks:
+    file: deploy.yml

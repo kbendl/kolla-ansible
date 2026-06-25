@@ -4,6 +4,7 @@ cinder_services:
     container_name: cinder_api
     group: cinder-api
     enabled: true
+    privileged: "{{ not cinder_selinux_enable | bool }}"
     image: "{{ cinder_api_image_full }}"
     volumes: "{{ cinder_api_default_volumes + cinder_api_extra_volumes }}"
     dimensions: "{{ cinder_api_dimensions }}"
@@ -35,6 +36,7 @@ cinder_services:
     container_name: cinder_scheduler
     group: cinder-scheduler
     enabled: true
+    privileged: "{{ not cinder_selinux_enable | bool }}"
     image: "{{ cinder_scheduler_image_full }}"
     volumes: "{{ cinder_scheduler_default_volumes + cinder_scheduler_extra_volumes }}"
     dimensions: "{{ cinder_scheduler_dimensions }}"
@@ -47,8 +49,11 @@ cinder_services:
          'cinder-volume' }}
     enabled: true
     image: "{{ cinder_volume_image_full }}"
-    privileged: true
+    privileged: "{{ not cinder_selinux_enable | bool }}"
     ipc_mode: "host"
+    cap_add:
+      - SYS_ADMIN
+      - MKNOD
     tmpfs: "{{ cinder_volume_tmpfs }}"
     volumes: "{{ cinder_volume_default_volumes + cinder_volume_extra_volumes + lookup('vars', 'run_default_volumes_' + kolla_container_engine) }}"
     dimensions: "{{ cinder_volume_dimensions }}"
@@ -61,8 +66,11 @@ cinder_services:
          'cinder-backup' }}
     enabled: "{{ enable_cinder_backup | bool }}"
     image: "{{ cinder_backup_image_full }}"
-    privileged: true
+    privileged: "{{ not cinder_selinux_enable | bool }}"
     ipc_mode: "host"
+    cap_add:
+      - SYS_ADMIN
+      - DAC_OVERRIDE
     volumes: "{{ cinder_backup_default_volumes + cinder_backup_extra_volumes + lookup('vars', 'run_default_volumes_' + kolla_container_engine) }}"
     dimensions: "{{ cinder_backup_dimensions }}"
     healthcheck: "{{ cinder_backup_healthcheck }}"
@@ -353,3 +361,8 @@ cinder_database_enable_tls_internal: "{{ database_enable_tls_internal | bool }}"
 # Copy certificates
 ###################
 cinder_copy_certs: "{{ kolla_copy_ca_into_containers | bool or cinder_enable_tls_backend | bool or cinder_database_enable_tls_internal | bool }}"
+
+###################
+# Enable SELinux
+###################
+cinder_selinux_enable: "{{ kolla_cinder_selinux_enable | default(true) | bool }}"

@@ -1,0 +1,85 @@
+---
+kolla_selinux_policies_manila:
+  manila_api:
+    _helpers:
+      - manila_bootstrap
+    enabled: "{{ enable_manila | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Manila API service"
+    domain: "kolla_manila_api_t"
+    exec_type: "kolla_manila_api_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type proc_t;"
+      - "type mysqld_port_t;"
+      - "type memcache_port_t;"
+      - "type amqp_port_t;"
+      - "class tcp_socket { name_bind name_connect };"
+      - "class file { read open getattr };"
+    allow_rules:
+      - "allow kolla_manila_api_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_manila_api_t mysqld_port_t:tcp_socket name_connect;"
+      - "allow kolla_manila_api_t memcache_port_t:tcp_socket name_connect;"
+      - "allow kolla_manila_api_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_manila_api_t proc_t:file { read open getattr };"
+
+  manila_scheduler:
+    enabled: "{{ enable_manila | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Manila Scheduler"
+    domain: "kolla_manila_scheduler_t"
+    exec_type: "kolla_manila_scheduler_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type proc_t;"
+      - "type amqp_port_t;"
+      - "class tcp_socket { name_connect };"
+      - "class file { read open getattr };"
+    allow_rules:
+      - "allow kolla_manila_scheduler_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_manila_scheduler_t proc_t:file { read open getattr };"
+
+  manila_share:
+    enabled: "{{ enable_manila | default(false) | bool }}"
+    groups:
+      - "control"
+      - "network"
+    description: "SELinux domain for Manila Share service"
+    domain: "kolla_manila_share_t"
+    exec_type: "kolla_manila_share_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type proc_t;"
+      - "type amqp_port_t;"
+      - "type port_t;"
+      - "class tcp_socket { name_bind name_connect };"
+      - "class capability { sys_admin };"
+      - "class file { read open getattr };"
+    allow_rules:
+      - "allow kolla_manila_share_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_manila_share_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_manila_share_t self:capability sys_admin;"
+      - "allow kolla_manila_share_t proc_t:file { read open getattr };"
+
+  manila_data:
+    enabled: "{{ enable_manila | default(false) | bool }}"
+    groups:
+      - "control"
+      - "network"
+    description: "SELinux domain for Manila Data service"
+    domain: "kolla_manila_data_t"
+    exec_type: "kolla_manila_data_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type proc_t;"
+      - "type amqp_port_t;"
+      - "class tcp_socket { name_connect };"
+      - "class file { read open getattr };"
+    allow_rules:
+      - "allow kolla_manila_data_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_manila_data_t port_t:tcp_socket name_connect;"
+      - "allow kolla_manila_data_t proc_t:file { read open getattr };"

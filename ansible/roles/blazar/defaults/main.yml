@@ -5,6 +5,7 @@ blazar_services:
     group: blazar-api
     enabled: true
     image: "{{ blazar_api_image_full }}"
+    privileged: "{{ not blazar_selinux_enable | bool }}"
     volumes: "{{ blazar_api_default_volumes + blazar_api_extra_volumes }}"
     dimensions: "{{ blazar_api_dimensions }}"
     healthcheck: "{{ blazar_api_healthcheck }}"
@@ -38,6 +39,7 @@ blazar_services:
     group: blazar-manager
     enabled: true
     image: "{{ blazar_manager_image_full }}"
+    privileged: "{{ not blazar_selinux_enable | bool }}"
     volumes: "{{ blazar_manager_default_volumes + blazar_manager_extra_volumes }}"
     dimensions: "{{ blazar_manager_dimensions }}"
     healthcheck: "{{ blazar_manager_healthcheck }}"
@@ -194,3 +196,8 @@ blazar_database_enable_tls_internal: "{{ database_enable_tls_internal | bool }}"
 # Copy certificates
 ###################
 blazar_copy_certs: "{{ kolla_copy_ca_into_containers | bool or blazar_database_enable_tls_internal | bool }}"
+
+###################
+# Enable SELinux
+###################
+blazar_selinux_enable: "{{ kolla_blazar_selinux_enable | default(true) | bool }}"

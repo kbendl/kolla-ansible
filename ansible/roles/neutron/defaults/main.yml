@@ -4,6 +4,7 @@ neutron_services:
     container_name: "neutron_server"
     image: "{{ neutron_server_image_full }}"
     enabled: true
+    privileged: "{{ not neutron_selinux_enable | bool }}"
     group: "neutron-server"
     host_in_groups: "{{ inventory_hostname in groups['neutron-server'] }}"
     volumes: "{{ neutron_server_default_volumes + neutron_server_extra_volumes }}"
@@ -36,6 +37,7 @@ neutron_services:
     container_name: "neutron_rpc_server"
     image: "{{ neutron_rpc_server_image_full }}"
     enabled: true
+    privileged: "{{ not neutron_selinux_enable | bool }}"
     group: "neutron-rpc-server"
     host_in_groups: "{{ inventory_hostname in groups['neutron-rpc-server'] }}"
     volumes: "{{ neutron_rpc_server_default_volumes + neutron_rpc_server_extra_volumes }}"
@@ -45,6 +47,7 @@ neutron_services:
     container_name: "neutron_periodic_worker"
     image: "{{ neutron_periodic_worker_image_full }}"
     enabled: true
+    privileged: "{{ not neutron_selinux_enable | bool }}"
     group: "neutron-periodic-worker"
     host_in_groups: "{{ inventory_hostname in groups['neutron-periodic-worker'] }}"
     volumes: "{{ neutron_periodic_worker_default_volumes + neutron_periodic_worker_extra_volumes }}"
@@ -54,6 +57,7 @@ neutron_services:
     container_name: "neutron_ovn_maintenance_worker"
     image: "{{ neutron_ovn_maintenance_worker_image_full }}"
     enabled: "{{ neutron_plugin_agent == 'ovn' }}"
+    privileged: "{{ not neutron_selinux_enable | bool }}"
     group: "neutron-ovn-maintenance-worker"
     host_in_groups: "{{ inventory_hostname in groups['neutron-ovn-maintenance-worker'] }}"
     volumes: "{{ neutron_ovn_maintenance_worker_default_volumes + neutron_ovn_maintenance_worker_extra_volumes }}"
@@ -63,7 +67,10 @@ neutron_services:
     container_name: "neutron_openvswitch_agent"
     image: "{{ neutron_openvswitch_agent_image_full }}"
     enabled: "{{ neutron_plugin_agent == 'openvswitch' }}"
-    privileged: true
+    privileged: "{{ not neutron_selinux_enable | bool }}"
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
     host_in_groups: >-
       {{
       (inventory_hostname in groups['compute']
@@ -85,7 +92,11 @@ neutron_services:
     cgroupns_mode: "{{ 'host' if neutron_agents_wrappers | bool else 'private' }}"
     container_name: "neutron_dhcp_agent"
     image: "{{ neutron_dhcp_agent_image_full }}"
-    privileged: true
+    privileged: "{{ not neutron_selinux_enable | bool }}"
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+      - SYS_ADMIN
     enabled: "{{ neutron_plugin_agent != 'ovn' }}"
     group: "neutron-dhcp-agent"
     host_in_groups: "{{ inventory_hostname in groups['neutron-dhcp-agent'] }}"
@@ -101,7 +112,11 @@ neutron_services:
     cgroupns_mode: "{{ 'host' if neutron_agents_wrappers | bool else 'private' }}"
     container_name: "neutron_l3_agent"
     image: "{{ neutron_l3_agent_image_full }}"
-    privileged: true
+    privileged: "{{ not neutron_selinux_enable | bool }}"
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+      - SYS_ADMIN
     enabled: "{{ neutron_plugin_agent != 'ovn' }}"
     environment:
       KOLLA_IMAGE: "{{ neutron_l3_agent_image_full }}"
@@ -119,7 +134,10 @@ neutron_services:
   neutron-sriov-agent:
     container_name: "neutron_sriov_agent"
     image: "{{ neutron_sriov_agent_image_full }}"
-    privileged: true
+    privileged: "{{ not neutron_selinux_enable | bool }}"
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
     enabled: "{{ enable_neutron_sriov | bool }}"
     host_in_groups: "{{ inventory_hostname in groups['compute'] }}"
     volumes: "{{ neutron_sriov_agent_default_volumes + neutron_sriov_agent_extra_volumes }}"
@@ -129,13 +147,20 @@ neutron_services:
     container_name: "neutron_mlnx_agent"
     image: "{{ neutron_mlnx_agent_image_full }}"
     enabled: "{{ enable_neutron_mlnx | bool }}"
+    privileged: "{{ not neutron_selinux_enable | bool }}"
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
     host_in_groups: "{{ inventory_hostname in groups['compute'] }}"
     volumes: "{{ neutron_mlnx_agent_default_volumes + neutron_mlnx_agent_extra_volumes }}"
     dimensions: "{{ neutron_mlnx_agent_dimensions }}"
   neutron-eswitchd:
     container_name: "neutron_eswitchd"
     image: "{{ neutron_eswitchd_image_full }}"
-    privileged: true
+    privileged: "{{ not neutron_selinux_enable | bool }}"
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
     enabled: "{{ enable_neutron_mlnx | bool }}"
     host_in_groups: "{{ inventory_hostname in groups['compute'] }}"
     volumes: "{{ neutron_eswitchd_default_volumes + neutron_eswitchd_extra_volumes }}"
@@ -143,7 +168,7 @@ neutron_services:
   neutron-metadata-agent:
     container_name: "neutron_metadata_agent"
     image: "{{ neutron_metadata_agent_image_full }}"
-    privileged: true
+    privileged: "{{ not neutron_selinux_enable | bool }}"
     enabled: "{{ neutron_plugin_agent != 'ovn' }}"
     host_in_groups: >-
       {{
@@ -153,10 +178,32 @@ neutron_services:
     volumes: "{{ neutron_metadata_agent_default_volumes + neutron_metadata_agent_extra_volumes }}"
     dimensions: "{{ neutron_metadata_agent_dimensions }}"
     healthcheck: "{{ neutron_metadata_agent_healthcheck }}"
+  neutron-ovn-metadata-agent:
+    cgroupns_mode: "{{ 'host' if neutron_agents_wrappers | bool else 'private' }}"
+    container_name: "neutron_ovn_metadata_agent"
+    image: "{{ neutron_ovn_metadata_agent_image_full }}"
+    privileged: "{{ not neutron_selinux_enable | bool }}"
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+    enabled: "{{ neutron_plugin_agent == 'ovn' }}"
+    host_in_groups: "{{ inventory_hostname in groups['neutron-ovn-metadata-agent'] }}"
+    volumes: "{{ neutron_ovn_metadata_agent_default_volumes + neutron_ovn_metadata_agent_extra_volumes }}"
+    dimensions: "{{ neutron_ovn_metadata_agent_dimensions }}"
+    healthcheck: "{{ neutron_ovn_metadata_agent_healthcheck }}"
+    pid_mode: "{{ 'host' if neutron_agents_wrappers | bool else '' }}"
+    environment:
+      KOLLA_IMAGE: "{{ neutron_ovn_metadata_agent_image_full }}"
+      KOLLA_NAME: "neutron_ovn_metadata_agent"
+      KOLLA_NEUTRON_WRAPPERS: "{{ 'true' if neutron_agents_wrappers | bool else 'false' }}"
+
   neutron-bgp-dragent:
     container_name: "neutron_bgp_dragent"
     image: "{{ neutron_bgp_dragent_image_full }}"
-    privileged: true
+    privileged: "{{ not neutron_selinux_enable | bool }}"
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
     enabled: "{{ enable_neutron_bgp_dragent | bool }}"
     group: "neutron-bgp-dragent"
     host_in_groups: "{{ inventory_hostname in groups['neutron-bgp-dragent'] }}"
@@ -166,7 +213,9 @@ neutron_services:
   neutron-metering-agent:
     container_name: "neutron_metering_agent"
     image: "{{ neutron_metering_agent_image_full }}"
-    privileged: true
+    privileged: "{{ not neutron_selinux_enable | bool }}"
+    cap_add:
+      - NET_ADMIN
     enabled: "{{ enable_neutron_metering | bool }}"
     group: "neutron-metering-agent"
     host_in_groups: "{{ inventory_hostname in groups['neutron-metering-agent'] }}"
@@ -175,7 +224,7 @@ neutron_services:
   ironic-neutron-agent:
     container_name: "ironic_neutron_agent"
     image: "{{ ironic_neutron_agent_image_full }}"
-    privileged: false
+    privileged: "{{ not neutron_selinux_enable | bool }}"
     enabled: "{{ enable_ironic_neutron_agent | bool }}"
     group: "ironic-neutron-agent"
     host_in_groups: "{{ inventory_hostname in groups['ironic-neutron-agent'] }}"
@@ -187,6 +236,9 @@ neutron_services:
     group: neutron-ovn-agent
     host_in_groups: "{{ inventory_hostname in groups['neutron-ovn-agent'] }}"
     enabled: "{{ neutron_enable_ovn_agent | bool }}"
+    privileged: "{{ not neutron_selinux_enable | bool }}"
+    cap_add:
+      - NET_ADMIN
     image: "{{ neutron_ovn_agent_image_full }}"
     volumes: "{{ neutron_ovn_agent_default_volumes + neutron_ovn_agent_extra_volumes }}"
     dimensions: "{{ neutron_ovn_agent_dimensions }}"
@@ -211,7 +263,7 @@ neutron_services:
   neutron-ovn-vpn-agent:
     container_name: "neutron_ovn_vpn_agent"
     image: "{{ neutron_ovn_vpn_agent_image_full }}"
-    privileged: false
+    privileged: "{{ not neutron_selinux_enable | bool }}"
     cgroupns_mode: "private"
     pid_mode: "host"
     cap_add:
@@ -902,3 +954,8 @@ neutron_database_enable_tls_internal: "{{ database_enable_tls_internal | bool }}
 # Copy certificates
 ###################
 neutron_copy_certs: "{{ kolla_copy_ca_into_containers | bool or neutron_enable_tls_backend | bool or neutron_database_enable_tls_internal | bool }}"
+
+####################
+# Enable SELinux
+####################
+neutron_selinux_enable: "{{ kolla_neutron_selinux_enable | default(true) | bool }}"

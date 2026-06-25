@@ -5,7 +5,7 @@ nova_services:
     group: "nova-api"
     image: "{{ nova_api_image_full }}"
     enabled: true
-    privileged: true
+    privileged: "{{ not nova_selinux_enable | bool }}"
     volumes: "{{ nova_api_default_volumes + nova_api_extra_volumes }}"
     dimensions: "{{ nova_api_dimensions }}"
     healthcheck: "{{ nova_api_healthcheck }}"
@@ -37,6 +37,7 @@ nova_services:
     group: "nova-metadata"
     image: "{{ nova_api_image_full }}"
     enabled: true
+    privileged: "{{ not nova_selinux_enable | bool }}"
     volumes: "{{ nova_metadata_default_volumes + nova_metadata_extra_volumes }}"
     dimensions: "{{ nova_metadata_dimensions }}"
     healthcheck: "{{ nova_metadata_healthcheck }}"
@@ -68,6 +69,7 @@ nova_services:
     group: "nova-scheduler"
     image: "{{ nova_scheduler_image_full }}"
     enabled: true
+    privileged: "{{ not nova_selinux_enable | bool }}"
     volumes: "{{ nova_scheduler_default_volumes + nova_scheduler_extra_volumes }}"
     dimensions: "{{ nova_scheduler_dimensions }}"
     healthcheck: "{{ nova_scheduler_healthcheck }}"
@@ -75,6 +77,7 @@ nova_services:
     container_name: "nova_super_conductor"
     group: "nova-super-conductor"
     enabled: "{{ enable_cells }}"
+    privileged: "{{ not nova_selinux_enable | bool }}"
     image: "{{ nova_super_conductor_image_full }}"
     volumes: "{{ nova_super_conductor_default_volumes + nova_super_conductor_extra_volumes }}"
     dimensions: "{{ nova_super_conductor_dimensions }}"
@@ -311,3 +314,8 @@ nova_source_version: "{{ kolla_source_version }}"
 nova_enable_tls_backend: "{{ kolla_enable_tls_backend }}"
 nova_copy_certs: "{{ kolla_copy_ca_into_containers | bool or nova_enable_tls_backend | bool or nova_database_enable_tls_internal | bool }}"
 nova_database_enable_tls_internal: "{{ database_enable_tls_internal | bool }}"
+
+####################
+# Enable SELinux
+####################
+nova_selinux_enable: "{{ kolla_nova_selinux_enable | default(true) | bool }}"

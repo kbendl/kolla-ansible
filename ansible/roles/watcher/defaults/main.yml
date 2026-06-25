@@ -5,6 +5,7 @@ watcher_services:
     group: watcher-api
     enabled: true
     image: "{{ watcher_api_image_full }}"
+    privileged: "{{ not watcher_selinux_enable | bool }}"
     volumes: "{{ watcher_api_default_volumes + watcher_api_extra_volumes }}"
     dimensions: "{{ watcher_api_dimensions }}"
     healthcheck: "{{ watcher_api_healthcheck }}"
@@ -33,6 +34,7 @@ watcher_services:
     group: watcher-applier
     enabled: true
     image: "{{ watcher_applier_image_full }}"
+    privileged: "{{ not watcher_selinux_enable | bool }}"
     volumes: "{{ watcher_applier_default_volumes + watcher_applier_extra_volumes }}"
     dimensions: "{{ watcher_applier_dimensions }}"
     healthcheck: "{{ watcher_applier_healthcheck }}"
@@ -41,6 +43,7 @@ watcher_services:
     group: watcher-engine
     enabled: true
     image: "{{ watcher_engine_image_full }}"
+    privileged: "{{ not watcher_selinux_enable | bool }}"
     volumes: "{{ watcher_engine_default_volumes + watcher_engine_extra_volumes }}"
     dimensions: "{{ watcher_engine_dimensions }}"
     healthcheck: "{{ watcher_engine_healthcheck }}"
@@ -210,3 +213,8 @@ watcher_database_enable_tls_internal: "{{ database_enable_tls_internal | bool }}
 # Copy certificates
 ###################
 watcher_copy_certs: "{{ kolla_copy_ca_into_containers | bool or watcher_database_enable_tls_internal | bool }}"
+
+####################
+# Enable SELinux
+####################
+watcher_selinux_enable: "{{ kolla_watcher_selinux_enable | default(true) | bool }}"

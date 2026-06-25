@@ -5,6 +5,7 @@ manila_services:
     group: "manila-api"
     image: "{{ manila_api_image_full }}"
     enabled: true
+    privileged: "{{ not manila_selinux_enable | bool }}"
     volumes: "{{ manila_api_default_volumes + manila_api_extra_volumes }}"
     dimensions: "{{ manila_api_dimensions }}"
     healthcheck: "{{ manila_api_healthcheck }}"
@@ -34,6 +35,7 @@ manila_services:
     group: "manila-scheduler"
     image: "{{ manila_scheduler_image_full }}"
     enabled: true
+    privileged: "{{ not manila_selinux_enable | bool }}"
     volumes: "{{ manila_scheduler_default_volumes + manila_scheduler_extra_volumes }}"
     dimensions: "{{ manila_scheduler_dimensions }}"
     healthcheck: "{{ manila_scheduler_healthcheck }}"
@@ -42,7 +44,7 @@ manila_services:
     group: "manila-share"
     image: "{{ manila_share_image_full }}"
     enabled: true
-    privileged: true
+    privileged: "{{ not manila_selinux_enable | bool }}"
     volumes: "{{ manila_share_default_volumes + manila_share_extra_volumes + lookup('vars', 'run_default_volumes_' + kolla_container_engine) }}"
     dimensions: "{{ manila_share_dimensions }}"
     healthcheck: "{{ manila_share_healthcheck }}"
@@ -51,7 +53,7 @@ manila_services:
     group: "manila-data"
     image: "{{ manila_data_image_full }}"
     enabled: true
-    privileged: true
+    privileged: "{{ not manila_selinux_enable | bool }}"
     volumes: "{{ manila_data_default_volumes + manila_data_extra_volumes + lookup('vars', 'run_default_volumes_' + kolla_container_engine) }}"
     dimensions: "{{ manila_data_dimensions }}"
     healthcheck: "{{ manila_data_healthcheck }}"
@@ -344,3 +346,8 @@ manila_database_enable_tls_internal: "{{ database_enable_tls_internal | bool }}"
 # Copy certificates
 ###################
 manila_copy_certs: "{{ kolla_copy_ca_into_containers | bool or manila_database_enable_tls_internal | bool }}"
+
+####################
+# Enable SELinux
+####################
+manila_selinux_enable: "{{ kolla_manila_selinux_enable | default(true) | bool }}"

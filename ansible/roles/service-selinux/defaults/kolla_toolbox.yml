@@ -1,0 +1,83 @@
+---
+kolla_selinux_policies_kolla_toolbox:
+  kolla_toolbox:
+    enabled: "{{ enable_kolla_toolbox | default(true) | bool }}"
+    groups:
+      - "common"
+    description: "SELinux domain for Kolla toolbox diagnostic container"
+    domain: "kolla_kolla_toolbox_t"
+    exec_type: "kolla_kolla_toolbox_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type var_log_t;"
+      - "type var_run_t;"
+      - "type proc_t;"
+      - "type port_t;"
+      - "class capability { net_admin sys_admin };"
+      - "class file { read open getattr execute map };"
+      - class chr_file { read write open ioctl getattr };
+      - "class dir { read search getattr };"
+      - "class tcp_socket { name_connect listen node_bind };"
+      - "type ptmx_t;"
+      - "type devpts_t;"
+      - class sock_file { write };
+      - "type syslogd_var_run_t;"
+      - "type node_t;"
+      - "type kernel_t;"
+      - "type commplex_main_port_t;"
+      - "type mysqld_port_t;"
+      - "type osapi_compute_port_t;"
+      - "type wap_wsp_port_t;"
+      - "type unreserved_port_t;"
+      - "type ntop_port_t;"
+      - "class unix_dgram_socket { sendto };"
+      - "class udp_socket { node_bind };"
+      - "class unix_stream_socket { connectto };"
+      - "class lnk_file { read };"
+      - "type container_var_run_t;"
+      - "type epmd_port_t;"
+      # - "type kolla_openvswitch_db_t;"
+      - "type neutron_port_t;"
+      - "type rabbitmq_port_t;"
+      - "type systemd_userdbd_runtime_t;"
+      - "type systemd_userdbd_t;"
+      - "type tmpfs_t;"
+    allow_rules:
+      - "allow kolla_kolla_toolbox_t self:capability { net_admin sys_admin };"
+      - "allow kolla_kolla_toolbox_t var_log_t:dir { read search getattr };"
+      - "allow kolla_kolla_toolbox_t var_log_t:file { read open getattr };"
+      - "allow kolla_kolla_toolbox_t var_run_t:dir { read search getattr };"
+      - "allow kolla_kolla_toolbox_t proc_t:file { read open getattr ioctl };"
+      - "allow kolla_kolla_toolbox_t port_t:tcp_socket name_connect;"
+      # Terminal device access for ansible-runner interactive shells
+      - "allow kolla_kolla_toolbox_t ptmx_t:chr_file { read write open ioctl getattr };"
+      - "allow kolla_kolla_toolbox_t devpts_t:chr_file { open };"
+      # Write to /dev/log for syslog logging
+      - "allow kolla_kolla_toolbox_t syslogd_var_run_t:sock_file write;"
+      # Node-level binding for diagnostic connections
+      - "allow kolla_kolla_toolbox_t node_t:tcp_socket node_bind;"
+      # Kernel socket communication (dbus/nsswitch)
+      - "allow kolla_kolla_toolbox_t kernel_t:unix_dgram_socket sendto;"
+      # Outbound connections to OpenStack services for health checks
+      - "allow kolla_kolla_toolbox_t commplex_main_port_t:tcp_socket name_connect;"
+      - "allow kolla_kolla_toolbox_t mysqld_port_t:tcp_socket name_connect;"
+      - "allow kolla_kolla_toolbox_t osapi_compute_port_t:tcp_socket name_connect;"
+      # OpenSearch health check (port 9200)
+      - "allow kolla_kolla_toolbox_t wap_wsp_port_t:tcp_socket name_connect;"
+      # OpenSearch Dashboards health check (port 5601, unreserved range)
+      - "allow kolla_kolla_toolbox_t unreserved_port_t:tcp_socket name_connect;"
+      # Grafana health check (port 3000)
+      - "allow kolla_kolla_toolbox_t ntop_port_t:tcp_socket name_connect;"
+      - "allow kolla_kolla_toolbox_t container_var_run_t:sock_file write;"
+      - "allow kolla_kolla_toolbox_t epmd_port_t:tcp_socket name_connect;"
+      - "allow kolla_kolla_toolbox_t kernel_t:unix_stream_socket connectto;"
+      - "allow kolla_kolla_toolbox_t self:tcp_socket listen;"
+      - "allow kolla_kolla_toolbox_t container_domain:unix_stream_socket connectto;"
+      - "allow kolla_kolla_toolbox_t neutron_port_t:tcp_socket name_connect;"
+      - "allow kolla_kolla_toolbox_t node_t:udp_socket node_bind;"
+      - "allow kolla_kolla_toolbox_t rabbitmq_port_t:tcp_socket name_connect;"
+      - "allow kolla_kolla_toolbox_t systemd_userdbd_runtime_t:dir read;"
+      - "allow kolla_kolla_toolbox_t systemd_userdbd_runtime_t:lnk_file read;"
+      - "allow kolla_kolla_toolbox_t systemd_userdbd_runtime_t:sock_file write;"
+      - "allow kolla_kolla_toolbox_t systemd_userdbd_t:unix_stream_socket connectto;"
+      - "allow kolla_kolla_toolbox_t tmpfs_t:file { execute map };"

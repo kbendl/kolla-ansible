@@ -1,0 +1,56 @@
+---
+kolla_selinux_policies_trove:
+  trove_api:
+    enabled: "{{ enable_trove | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Trove API service (DBaaS)"
+    domain: "kolla_trove_api_t"
+    exec_type: "kolla_trove_api_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type proc_t;"
+      - "type mysqld_port_t;"
+      - "type amqp_port_t;"
+      - "class tcp_socket { name_bind name_connect };"
+      - "class file { read open getattr };"
+    allow_rules:
+      - "allow kolla_trove_api_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_trove_api_t mysqld_port_t:tcp_socket name_connect;"
+      - "allow kolla_trove_api_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_trove_api_t proc_t:file { read open getattr };"
+
+  trove_conductor:
+    enabled: "{{ enable_trove | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Trove Conductor"
+    domain: "kolla_trove_conductor_t"
+    exec_type: "kolla_trove_conductor_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type proc_t;"
+      - "type amqp_port_t;"
+      - "class tcp_socket { name_connect };"
+      - "class file { read open getattr };"
+    allow_rules:
+      - "allow kolla_trove_conductor_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_trove_conductor_t proc_t:file { read open getattr };"
+
+  trove_taskmanager:
+    enabled: "{{ enable_trove | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Trove Task Manager"
+    domain: "kolla_trove_taskmanager_t"
+    exec_type: "kolla_trove_taskmanager_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type proc_t;"
+      - "type amqp_port_t;"
+      - "class tcp_socket { name_connect };"
+      - "class file { read open getattr };"
+    allow_rules:
+      - "allow kolla_trove_taskmanager_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_trove_taskmanager_t proc_t:file { read open getattr };"

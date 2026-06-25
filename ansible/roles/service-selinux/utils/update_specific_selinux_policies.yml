@@ -1,0 +1,24 @@
+---
+- name: Apply or update specific SELinux policies
+  hosts: all
+  become: true
+  gather_facts: true
+
+  vars:
+    # Restrict the service-selinux role to these services only.
+    # Values must match the basename of a defaults/*.yml file, using
+    # underscores (e.g. "kolla_toolbox", "prometheus", "aodh").
+    # Override on the command line, e.g.:
+    #   -e 'limit_selinux_services=["prometheus", "kolla_toolbox"]'
+    limit_selinux_services:
+      - prometheus
+      - grafana
+
+  tasks:
+    - name: Apply service-selinux role for selected services
+      ansible.builtin.include_role:
+        name: "{{ playbook_dir }}/.."
+        tasks_from: deploy.yml
+        apply:
+          tags:
+            - selinux

@@ -5,7 +5,9 @@ multipathd_services:
     group: multipathd
     enabled: true
     ipc_mode: "host"
-    privileged: true
+    privileged: "{{ not multipathd_selinux_enable | bool }}"
+    cap_add:
+      - SYS_ADMIN
     image: "{{ multipathd_image_full }}"
     volumes: "{{ multipathd_default_volumes + multipathd_extra_volumes + lookup('vars', 'run_default_volumes_' + kolla_container_engine) }}"
 
@@ -25,3 +27,8 @@ multipathd_default_volumes:
   - "/lib/modules:/lib/modules:ro"
   - "/sys/kernel/config:/configfs"
 multipathd_extra_volumes: "{{ default_extra_volumes }}"
+
+####################
+# Enable SELinux
+####################
+multipathd_selinux_enable: "{{ kolla_multipathd_selinux_enable | default(true) | bool }}"

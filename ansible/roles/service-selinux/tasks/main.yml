@@ -1,0 +1,19 @@
+---
+- name: Check if local task file exists
+  ansible.builtin.stat:
+    path: "{{ role_path }}/tasks/{{ kolla_action }}.yml"
+  register: local_action_file
+  delegate_to: localhost
+  tags:
+    - selinux
+
+- name: "Include tasks for action {{ kolla_action }}"
+  ansible.builtin.include_tasks:
+    file: "{{ kolla_action }}.yml"
+    apply:
+      tags:
+        - selinux
+  when:
+    - local_action_file.stat.exists
+    - ansible_os_family == 'RedHat'
+    - ansible_distribution_major_version | int >= 9

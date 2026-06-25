@@ -5,6 +5,7 @@ aodh_services:
     group: aodh-api
     enabled: true
     image: "{{ aodh_api_image_full }}"
+    privileged: "{{ not aodh_selinux_enable | bool }}"
     volumes: "{{ aodh_api_default_volumes + aodh_api_extra_volumes }}"
     dimensions: "{{ aodh_api_dimensions }}"
     healthcheck: "{{ aodh_api_healthcheck }}"
@@ -34,6 +35,7 @@ aodh_services:
     group: aodh-evaluator
     enabled: true
     image: "{{ aodh_evaluator_image_full }}"
+    privileged: "{{ not aodh_selinux_enable | bool }}"
     volumes: "{{ aodh_evaluator_default_volumes + aodh_evaluator_extra_volumes }}"
     dimensions: "{{ aodh_evaluator_dimensions }}"
     healthcheck: "{{ aodh_evaluator_healthcheck }}"
@@ -42,6 +44,7 @@ aodh_services:
     group: aodh-listener
     enabled: true
     image: "{{ aodh_listener_image_full }}"
+    privileged: "{{ not aodh_selinux_enable | bool }}"
     volumes: "{{ aodh_listener_default_volumes + aodh_listener_extra_volumes }}"
     dimensions: "{{ aodh_listener_dimensions }}"
     healthcheck: "{{ aodh_listener_healthcheck }}"
@@ -50,6 +53,7 @@ aodh_services:
     group: aodh-notifier
     enabled: true
     image: "{{ aodh_notifier_image_full }}"
+    privileged: "{{ not aodh_selinux_enable | bool }}"
     volumes: "{{ aodh_notifier_default_volumes + aodh_notifier_extra_volumes }}"
     dimensions: "{{ aodh_notifier_dimensions }}"
     healthcheck: "{{ aodh_notifier_healthcheck }}"
@@ -256,3 +260,8 @@ aodh_database_enable_tls_internal: "{{ database_enable_tls_internal | bool }}"
 # Copy certificates
 ###################
 aodh_copy_certs: "{{ kolla_copy_ca_into_containers | bool or aodh_database_enable_tls_internal | bool }}"
+
+###################
+# Enable SELinux
+###################
+aodh_selinux_enable: "{{ kolla_aodh_selinux_enable | default(true) | bool }}"

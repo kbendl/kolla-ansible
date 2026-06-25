@@ -783,6 +783,15 @@
             executable: /bin/bash
             chdir: "{{ kolla_ansible_src_dir }}"
 
+        - name: Run test-selinux.sh script
+          script:
+            cmd: test-selinux.sh
+            executable: /bin/bash
+            chdir: "{{ kolla_ansible_src_dir }}"
+          environment:
+            SELINUX_TIME_WINDOW_MINUTES: "{{ selinux_time_window_minutes | default(60) }}"
+          when: selinux_test_enabled | default(false) | bool
+
         - name: Import role kolla-ansible-check
           import_role:
             name: kolla-ansible-check

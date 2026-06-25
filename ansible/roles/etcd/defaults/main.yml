@@ -6,6 +6,7 @@ etcd_services:
     enabled: true
     environment: "{{ etcd_base_environment | combine(etcd_default_environment) }}"
     image: "{{ etcd_image_full }}"
+    privileged: "{{ not etcd_selinux_enable | bool }}"
     volumes: "{{ etcd_default_volumes + etcd_extra_volumes }}"
     dimensions: "{{ etcd_dimensions }}"
     healthcheck: "{{ etcd_healthcheck }}"
@@ -129,3 +130,8 @@ etcd_copy_certs: "{{ kolla_copy_ca_into_containers | bool or etcd_enable_tls | b
 # TLS
 ###################
 etcd_enable_tls_backend: "{{ etcd_enable_tls | bool }}"
+
+###################
+# Enable SELinux
+###################
+etcd_selinux_enable: "{{ kolla_etcd_selinux_enable | default(true) | bool }}"

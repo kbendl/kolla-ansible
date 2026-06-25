@@ -5,6 +5,7 @@ magnum_services:
     group: magnum-api
     enabled: true
     image: "{{ magnum_api_image_full }}"
+    privileged: "{{ not magnum_selinux_enable | bool }}"
     environment:
       DUMMY_ENVIRONMENT: kolla_useless_env
     volumes: "{{ magnum_api_default_volumes + magnum_api_extra_volumes }}"
@@ -38,6 +39,7 @@ magnum_services:
     group: magnum-conductor
     enabled: true
     image: "{{ magnum_conductor_image_full }}"
+    privileged: "{{ not magnum_selinux_enable | bool }}"
     environment: "{{ magnum_conductor_container_proxy }}"
     volumes: "{{ magnum_conductor_default_volumes + magnum_conductor_extra_volumes }}"
     dimensions: "{{ magnum_conductor_dimensions }}"
@@ -214,3 +216,8 @@ magnum_copy_certs: "{{ kolla_copy_ca_into_containers | bool or magnum_enable_tls
 # TLS
 ####################
 magnum_enable_tls_backend: "{{ kolla_enable_tls_backend }}"
+
+####################
+# Enable SELinux
+####################
+magnum_selinux_enable: "{{ kolla_magnum_selinux_enable | default(true) | bool }}"

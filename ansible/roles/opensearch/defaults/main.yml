@@ -5,6 +5,7 @@ opensearch_services:
     group: opensearch
     enabled: true
     image: "{{ opensearch_image_full }}"
+    privileged: "{{ not opensearch_selinux_enable | bool }}"
     environment:
       OPENSEARCH_JAVA_OPTS: "{{ opensearch_java_opts }}"
     volumes: "{{ opensearch_default_volumes + opensearch_extra_volumes }}"
@@ -27,6 +28,7 @@ opensearch_services:
     environment:
       OPENSEARCH_DASHBOARDS_SECURITY_PLUGIN: "False"
     image: "{{ opensearch_dashboards_image_full }}"
+    privileged: "{{ not opensearch_selinux_enable | bool }}"
     volumes: "{{ opensearch_dashboards_default_volumes + opensearch_dashboards_extra_volumes }}"
     dimensions: "{{ opensearch_dashboards_dimensions }}"
     healthcheck: "{{ opensearch_dashboards_healthcheck }}"
@@ -190,3 +192,8 @@ opensearch_dashboards_extra_volumes: "{{ default_extra_volumes }}"
 # Copy certificates
 ###################
 opensearch_copy_certs: "{{ kolla_copy_ca_into_containers | bool }}"
+
+####################
+# Enable SELinux
+####################
+opensearch_selinux_enable: "{{ kolla_opensearch_selinux_enable | default(true) | bool }}"

@@ -1,0 +1,53 @@
+---
+kolla_selinux_policies_hacluster:
+  hacluster_corosync:
+    enabled: "{{ enable_hacluster | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for HA Corosync cluster engine"
+    domain: "kolla_hacluster_corosync_t"
+    exec_type: "kolla_hacluster_corosync_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "class capability { net_admin net_raw sys_admin };"
+      - "class tcp_socket { name_bind name_connect };"
+      - "class udp_socket { name_bind };"
+    allow_rules:
+      - "allow kolla_hacluster_corosync_t self:capability { net_admin net_raw sys_admin };"
+      - "allow kolla_hacluster_corosync_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_hacluster_corosync_t port_t:udp_socket name_bind;"
+
+  hacluster_pacemaker:
+    enabled: "{{ enable_hacluster | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for HA Pacemaker cluster manager"
+    domain: "kolla_hacluster_pacemaker_t"
+    exec_type: "kolla_hacluster_pacemaker_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type proc_t;"
+      - "class capability { sys_admin net_admin };"
+      - "class tcp_socket { name_bind name_connect };"
+      - "class file { read open getattr };"
+    allow_rules:
+      - "allow kolla_hacluster_pacemaker_t self:capability { sys_admin net_admin };"
+      - "allow kolla_hacluster_pacemaker_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_hacluster_pacemaker_t proc_t:file { read open getattr };"
+
+  hacluster_pacemaker_remote:
+    enabled: "{{ enable_hacluster | default(false) | bool }}"
+    groups:
+      - "control"
+      - "compute"
+    description: "SELinux domain for HA Pacemaker Remote"
+    domain: "kolla_hacluster_pacemaker_remote_t"
+    exec_type: "kolla_hacluster_pacemaker_remote_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "class tcp_socket { name_bind name_connect };"
+    allow_rules:
+      - "allow kolla_hacluster_pacemaker_remote_t port_t:tcp_socket { name_bind name_connect };"

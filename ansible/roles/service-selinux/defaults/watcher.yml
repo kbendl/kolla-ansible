@@ -1,0 +1,56 @@
+---
+kolla_selinux_policies_watcher:
+  watcher_api:
+    enabled: "{{ enable_watcher | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Watcher API service"
+    domain: "kolla_watcher_api_t"
+    exec_type: "kolla_watcher_api_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type proc_t;"
+      - "type mysqld_port_t;"
+      - "type amqp_port_t;"
+      - "class tcp_socket { name_bind name_connect };"
+      - "class file { read open getattr };"
+    allow_rules:
+      - "allow kolla_watcher_api_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_watcher_api_t mysqld_port_t:tcp_socket name_connect;"
+      - "allow kolla_watcher_api_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_watcher_api_t proc_t:file { read open getattr };"
+
+  watcher_applier:
+    enabled: "{{ enable_watcher | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Watcher Applier"
+    domain: "kolla_watcher_applier_t"
+    exec_type: "kolla_watcher_applier_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type proc_t;"
+      - "type amqp_port_t;"
+      - "class tcp_socket { name_connect };"
+      - "class file { read open getattr };"
+    allow_rules:
+      - "allow kolla_watcher_applier_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_watcher_applier_t proc_t:file { read open getattr };"
+
+  watcher_engine:
+    enabled: "{{ enable_watcher | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Watcher Decision Engine"
+    domain: "kolla_watcher_engine_t"
+    exec_type: "kolla_watcher_engine_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type proc_t;"
+      - "type amqp_port_t;"
+      - "class tcp_socket { name_connect };"
+      - "class file { read open getattr };"
+    allow_rules:
+      - "allow kolla_watcher_engine_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_watcher_engine_t proc_t:file { read open getattr };"

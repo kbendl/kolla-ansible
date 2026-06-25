@@ -9,7 +9,14 @@ nova_cell_services:
     image: "{{ nova_libvirt_image_full }}"
     pid_mode: "host"
     cgroupns_mode: "host"
-    privileged: true
+    privileged: "{{ not nova_cell_selinux_enable | bool }}"
+    cap_add:
+      - SYS_ADMIN
+      - SYS_PTRACE
+      - MKNOD
+      - NET_ADMIN
+      - DAC_OVERRIDE
+      - IPC_LOCK
     volumes: "{{ nova_libvirt_default_volumes + nova_libvirt_extra_volumes + lookup('vars', 'run_default_volumes_' + kolla_container_engine) }}"
     dimensions: "{{ nova_libvirt_dimensions }}"
     healthcheck: "{{ nova_libvirt_healthcheck }}"
@@ -58,7 +65,11 @@ nova_cell_services:
     image: "{{ nova_compute_image_full }}"
     environment:
       LIBGUESTFS_BACKEND: "direct"
-    privileged: true
+    privileged: "{{ not nova_cell_selinux_enable | bool }}"
+    cap_add:
+      - SYS_ADMIN
+      - NET_ADMIN
+      - DAC_OVERRIDE
     enabled: "{{ not enable_nova_fake | bool }}"
     ipc_mode: "host"
     volumes: "{{ nova_compute_default_volumes + nova_compute_extra_volumes + lookup('vars', 'run_default_volumes_' + kolla_container_engine) }}"
@@ -707,3 +718,8 @@ nova_multi_compute_ironic_config: []
 # Copy certificates
 ###################
 nova_cell_copy_certs: "{{ kolla_copy_ca_into_containers | bool or nova_cell_database_enable_tls_internal | bool }}"
+
+####################
+# Enable SELinux
+####################
+nova_cell_selinux_enable: "{{ kolla_nova_cell_selinux_enable | default(true) | bool }}"

@@ -10,11 +10,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from podman.errors import APIError
-from podman import PodmanClient
-
 import os
 import shlex
+
+from podman.errors import APIError
+from podman import PodmanClient
 
 from ansible.module_utils.kolla_container_worker import COMPARE_CONFIG_CMD
 from ansible.module_utils.kolla_container_worker import ContainerWorker
@@ -59,6 +59,7 @@ CONTAINER_PARAMS = [
     'restart_policy',   # set to none, handled by systemd
     'remove',           # bool
     'restart_tries',    # int doesn't matter done by systemd
+    'security_opt',     # str
     'stop_timeout',     # int
     'tty',              # bool
     # volumes need to be parsed, see parse_volumes() for more info
@@ -75,6 +76,11 @@ class PodmanWorker(ContainerWorker):
         self.pc = PodmanClient(base_url=uri)
 
     def prepare_container_args(self):
+        # Auto-generate SELinux label only when no explicit security_opt
+        # was set by the caller (e.g. when privileged, _effective_security_opt
+        # returns an empty list and the key is not added).
+        if not self.params.get('security_opt'):
+            self.params['security_opt'] = self._effective_security_opt()
         args = dict(
             network_mode='host'
         )

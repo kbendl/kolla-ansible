@@ -1,0 +1,37 @@
+---
+kolla_selinux_policies_blazar:
+  blazar_api:
+    enabled: "{{ enable_blazar | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Blazar API service"
+    domain: "kolla_blazar_api_t"
+    exec_type: "kolla_blazar_api_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type proc_t;"
+      - "type mysqld_port_t;"
+      - "class tcp_socket { name_bind name_connect };"
+      - "class file { read open getattr };"
+    allow_rules:
+      - "allow kolla_blazar_api_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_blazar_api_t mysqld_port_t:tcp_socket name_connect;"
+      - "allow kolla_blazar_api_t proc_t:file { read open getattr };"
+
+  blazar_manager:
+    enabled: "{{ enable_blazar | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Blazar Manager"
+    domain: "kolla_blazar_manager_t"
+    exec_type: "kolla_blazar_manager_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type proc_t;"
+      - "type amqp_port_t;"
+      - "class tcp_socket { name_connect };"
+      - "class file { read open getattr };"
+    allow_rules:
+      - "allow kolla_blazar_manager_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_blazar_manager_t proc_t:file { read open getattr };"

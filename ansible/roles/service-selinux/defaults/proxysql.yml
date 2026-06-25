@@ -1,0 +1,36 @@
+---
+kolla_selinux_policies_proxysql:
+  proxysql:
+    enabled: "{{ enable_proxysql | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for ProxySQL Database Router"
+    domain: "kolla_proxysql_t"
+    exec_type: "kolla_proxysql_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type proc_t;"
+      - "type node_t;"
+      - "type mysqld_port_t;"
+      - "type unreserved_port_t;"
+      - "class capability { setuid setgid sys_resource };"
+      - "class tcp_socket { name_bind name_connect node_bind listen };"
+      - "class file { read open };"
+      - "class process { setrlimit };"
+      - "class netlink_tcpdiag_socket { nlmsg_read };"
+    allow_rules:
+      - "allow kolla_proxysql_t self:capability { setuid setgid sys_resource };"
+      # Required to increase ulimits for massive connection pooling
+      - "allow kolla_proxysql_t self:process setrlimit;"
+      - "allow kolla_proxysql_t port_t:tcp_socket { name_bind name_connect };"
+      # ProxySQL serves clients on 3306 and connects to backend MySQL/MariaDB instances
+      - "allow kolla_proxysql_t mysqld_port_t:tcp_socket { name_bind name_connect };"
+      # Admin/stats interfaces bind high (unreserved) ports
+      - "allow kolla_proxysql_t unreserved_port_t:tcp_socket name_bind;"
+      - "allow kolla_proxysql_t node_t:tcp_socket node_bind;"
+      - "allow kolla_proxysql_t self:tcp_socket listen;"
+      # Healthcheck tools (pgrep, ss) need /proc access
+      - "allow kolla_proxysql_t proc_t:file { read open };"
+      # Healthcheck tools (ss) need to query TCP socket diagnostics
+      - "allow kolla_proxysql_t self:netlink_tcpdiag_socket nlmsg_read;"

@@ -1,0 +1,65 @@
+---
+# Parallel SELinux policy compilation.
+#
+#   - Compute SHA256 of every kolla_*.te file.
+#   - Compare against a stored .te.sha256 sidecar.
+#   - If the checksum differs OR the .pp is missing, add to recompile list.
+#   - Compile all stale policies in parallel via make -j$(nproc).
+#
+# Checksums are NOT persisted here — that happens after semodule -i
+# succeeds in main.yml. This ensures a module that was compiled but
+# failed to load will be retried on the next deploy.
+#
+# On a redeploy where no .te file changed, this step completes
+# in < 1 second regardless of how many policies are defined.
+
+- name: Discover which SELinux policies need recompilation
+  become: true
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      cd "{{ selinux_profile_build_dir }}"
+      total=0
+      for te in kolla_*.te; do
+        [ -f "$te" ] || continue
+        total=$((total + 1))
+        name="${te%.te}"
+        newsum=$(sha256sum "$te" | cut -d' ' -f1)
+        oldsum=""
+        [ -f "${name}.te.sha256" ] && oldsum=$(cat "${name}.te.sha256")
+        if [ "$newsum" != "$oldsum" ]; then
+          rm -f "${name}.pp" 2>/dev/null || true
+          echo "$name"
+        elif [ ! -f "${name}.pp" ]; then
+          echo "$name"
+        fi
+      done
+      echo "TOTAL=$total" >&2
+    chdir: "{{ selinux_profile_build_dir }}"
+  register: _recompile_check
+  changed_when: false
+
+- name: Parse recompilation list and total count
+  ansible.builtin.set_fact:
+    _recompile_names: "{{ _recompile_check.stdout_lines | default([]) }}"
+    _te_total: "{{ (_recompile_check.stderr | default('TOTAL=0') | regex_search('TOTAL=(\\d+)', '\\1') | first) | int }}"
+
+- name: Skip compilation (all policies are fresh)
+  ansible.builtin.debug:
+    msg: >-
+      All SELinux policies are up-to-date
+      ({{ _te_total }} .te files checked,
+      0 need recompilation).
+  when: _recompile_names | length == 0
+
+- name: Parallel-compile changed SELinux policy modules
+  become: true
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      cd "{{ selinux_profile_build_dir }}"
+      make -f /usr/share/selinux/devel/Makefile -j "$(nproc)" \
+        {% for name in _recompile_names %}{{ name }}.pp {% endfor %}
+  register: _parallel_compile
+  changed_when: true
+  when: _recompile_names | length > 0

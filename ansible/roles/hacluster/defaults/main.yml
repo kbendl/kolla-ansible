@@ -5,6 +5,7 @@ hacluster_services:
     group: "hacluster"
     enabled: true
     image: "{{ hacluster_corosync_image_full }}"
+    privileged: "{{ not hacluster_selinux_enable | bool }}"
     volumes: "{{ hacluster_corosync_default_volumes + hacluster_corosync_extra_volumes }}"
     ipc_mode: "host"
     cap_add:
@@ -17,6 +18,7 @@ hacluster_services:
     group: "hacluster"
     enabled: true
     image: "{{ hacluster_pacemaker_image_full }}"
+    privileged: "{{ not hacluster_selinux_enable | bool }}"
     environment:
       PCMK_logfile: /var/log/kolla/hacluster/pacemaker.log
       PCMK_debug: "{{ 'on' if openstack_logging_debug | bool else 'off' }}"
@@ -28,6 +30,7 @@ hacluster_services:
     group: "hacluster-remote"
     enabled: true
     image: "{{ hacluster_pacemaker_remote_image_full }}"
+    privileged: "{{ not hacluster_selinux_enable | bool }}"
     volumes: "{{ hacluster_pacemaker_remote_default_volumes + hacluster_pacemaker_remote_extra_volumes }}"
     ipc_mode: "host"
     dimensions: "{{ hacluster_pacemaker_remote_dimensions }}"
@@ -83,3 +86,9 @@ hacluster_pacemaker_remote_extra_volumes: "{{ hacluster_extra_volumes }}"
 
 # this is TCP port
 hacluster_pacemaker_remote_port: 3121
+
+
+###################
+# Enable SELinux
+###################
+hacluster_selinux_enable: "{{ kolla_hacluster_selinux_enable | default(true) | bool }}"

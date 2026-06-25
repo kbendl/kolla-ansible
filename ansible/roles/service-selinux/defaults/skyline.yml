@@ -1,0 +1,34 @@
+---
+kolla_selinux_policies_skyline:
+  skyline_apiserver:
+    enabled: "{{ enable_skyline | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Skyline API Server"
+    domain: "kolla_skyline_apiserver_t"
+    exec_type: "kolla_skyline_apiserver_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type proc_t;"
+      - "type mysqld_port_t;"
+      - "class tcp_socket { name_bind name_connect };"
+      - "class file { read open getattr };"
+    allow_rules:
+      - "allow kolla_skyline_apiserver_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_skyline_apiserver_t mysqld_port_t:tcp_socket name_connect;"
+      - "allow kolla_skyline_apiserver_t proc_t:file { read open getattr };"
+
+  skyline_console:
+    enabled: "{{ enable_skyline | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Skyline Console frontend"
+    domain: "kolla_skyline_console_t"
+    exec_type: "kolla_skyline_console_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "class tcp_socket { name_bind name_connect };"
+    allow_rules:
+      - "allow kolla_skyline_console_t port_t:tcp_socket { name_bind name_connect };"

@@ -1,0 +1,103 @@
+---
+kolla_selinux_policies_ceilometer:
+  ceilometer_notification:
+    _helpers:
+      - ceilometer_bootstrap
+    enabled: "{{ enable_ceilometer | default(false) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Ceilometer Notification Agent"
+    domain: "kolla_ceilometer_notification_t"
+    exec_type: "kolla_ceilometer_notification_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type proc_t;"
+      - "type amqp_port_t;"
+      - "type mysqld_port_t;"
+      - "class tcp_socket { name_bind name_connect };"
+      - "class file { read open getattr };"
+      - "class netlink_tcpdiag_socket { nlmsg_read };"
+    allow_rules:
+      - "allow kolla_ceilometer_notification_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_ceilometer_notification_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_ceilometer_notification_t mysqld_port_t:tcp_socket name_connect;"
+      - "allow kolla_ceilometer_notification_t proc_t:file { read open getattr };"
+      - "allow kolla_ceilometer_notification_t self:netlink_tcpdiag_socket nlmsg_read;"
+
+  ceilometer_central:
+    enabled: "{{ enable_ceilometer_central | default(true) | bool }}"
+    groups:
+      - "control"
+    description: "SELinux domain for Ceilometer Central Polling Agent"
+    domain: "kolla_ceilometer_central_t"
+    exec_type: "kolla_ceilometer_central_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type proc_t;"
+      - "type amqp_port_t;"
+      - "type mysqld_port_t;"
+      - "type commplex_main_port_t;"
+      - "class tcp_socket { name_connect };"
+      - "class file { read open getattr };"
+    allow_rules:
+      - "allow kolla_ceilometer_central_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_ceilometer_central_t mysqld_port_t:tcp_socket name_connect;"
+      - "allow kolla_ceilometer_central_t port_t:tcp_socket name_connect;"
+      - "allow kolla_ceilometer_central_t commplex_main_port_t:tcp_socket name_connect;"
+      - "allow kolla_ceilometer_central_t proc_t:file { read open getattr };"
+
+  ceilometer_compute:
+    enabled: "{{ enable_ceilometer | default(false) | bool }}"
+    groups:
+      - "compute"
+    description: "SELinux domain for Ceilometer Compute Polling Agent"
+    domain: "kolla_ceilometer_compute_t"
+    exec_type: "kolla_ceilometer_compute_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type proc_t;"
+      - "type amqp_port_t;"
+      - "class tcp_socket { name_connect };"
+      - "class file { read open getattr };"
+      - "type virt_var_run_t;"
+      - "type virtd_t;"
+      - "type systemd_userdbd_t;"
+      - "type systemd_userdbd_runtime_t;"
+      - "type kernel_t;"
+      - "class sock_file write;"
+      - "class unix_stream_socket connectto;"
+      - "class lnk_file { read };"
+      - "class dir { read };"
+      # - "type kolla_nova_libvirt_t;"
+
+    allow_rules:
+      - "allow kolla_ceilometer_compute_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_ceilometer_compute_t proc_t:file { read open getattr };"
+      - "allow kolla_ceilometer_compute_t virt_var_run_t:sock_file write;"
+      - "allow kolla_ceilometer_compute_t virtd_t:unix_stream_socket connectto;"
+      - "allow kolla_ceilometer_compute_t systemd_userdbd_t:unix_stream_socket connectto;"
+      - "allow kolla_ceilometer_compute_t systemd_userdbd_runtime_t:sock_file write;"
+      - "allow kolla_ceilometer_compute_t systemd_userdbd_runtime_t:lnk_file read;"
+      - "allow kolla_ceilometer_compute_t systemd_userdbd_runtime_t:dir read;"
+      - "allow kolla_ceilometer_compute_t kernel_t:unix_stream_socket connectto;"
+      # - "allow kolla_ceilometer_compute_t kolla_nova_libvirt_t:unix_stream_socket connectto;"
+      - "allow kolla_ceilometer_compute_t container_domain:unix_stream_socket connectto;"
+
+  ceilometer_ipmi:
+    enabled: "{{ enable_ceilometer | default(false) | bool }}"
+    groups:
+      - "compute"
+    description: "SELinux domain for Ceilometer IPMI Polling Agent"
+    domain: "kolla_ceilometer_ipmi_t"
+    exec_type: "kolla_ceilometer_ipmi_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type proc_t;"
+      - "type amqp_port_t;"
+      - "class tcp_socket { name_connect };"
+      - "class file { read open getattr };"
+    allow_rules:
+      - "allow kolla_ceilometer_ipmi_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_ceilometer_ipmi_t proc_t:file { read open getattr };"

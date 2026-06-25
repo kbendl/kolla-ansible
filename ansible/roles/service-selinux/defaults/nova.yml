@@ -1,0 +1,354 @@
+---
+kolla_selinux_policies_nova:
+  nova_api:
+    _helpers:
+      - nova_api_bootstrap
+      - nova_api_map_cell0
+      - nova_api_online_data_migrations
+      - nova_upgrade_checks
+    enabled: "{{ enable_nova | default(true) | bool }}"
+    description: "SELinux domain for nova_api"
+    groups:
+      - "control"
+    domain: "kolla_nova_api_t"
+    exec_type: "kolla_nova_api_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type node_t;"
+      - "type proc_t;"
+      - "type mysqld_port_t;"
+      - "type commplex_main_port_t;"
+      - "type memcache_port_t;"
+      - "type ephemeral_port_t;"
+      - "type osapi_compute_port_t;"
+      - "class tcp_socket { name_bind name_connect node_bind listen };"
+    allow_rules:
+      - "allow kolla_nova_api_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_nova_api_t node_t:tcp_socket node_bind;"
+      - "allow kolla_nova_api_t proc_t:file { read open getattr ioctl };"
+      - "allow kolla_nova_api_t mysqld_port_t:tcp_socket name_connect;"
+      - "allow kolla_nova_api_t commplex_main_port_t:tcp_socket name_connect;"
+      - "allow kolla_nova_api_t memcache_port_t:tcp_socket name_connect;"
+      - "allow kolla_nova_api_t ephemeral_port_t:tcp_socket name_connect;"
+      - "allow kolla_nova_api_t osapi_compute_port_t:tcp_socket name_connect;"
+      - "allow kolla_nova_api_t self:tcp_socket listen;"
+      - "allow kolla_nova_api_t osapi_compute_port_t:tcp_socket name_bind;"
+
+  nova_scheduler:
+    enabled: "{{ enable_nova | default(true) | bool }}"
+    description: "SELinux domain for nova_scheduler"
+    groups:
+      - "control"
+    domain: "kolla_nova_scheduler_t"
+    exec_type: "kolla_nova_scheduler_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "class tcp_socket { name_connect node_bind };"
+      - "type proc_t;"
+      - "type mysqld_port_t;"
+      - "class netlink_tcpdiag_socket { nlmsg_read };"
+      - "class file { read open getattr ioctl };"
+      - "type amqp_port_t;"
+      - "type commplex_main_port_t;"
+      - "type node_t;"
+      - "type unreserved_port_t;"
+    allow_rules:
+      - "allow kolla_nova_scheduler_t port_t:tcp_socket name_connect;"
+      - "allow kolla_nova_scheduler_t self:netlink_tcpdiag_socket nlmsg_read;"
+      - "allow kolla_nova_scheduler_t mysqld_port_t:tcp_socket name_connect;"
+      - "allow kolla_nova_scheduler_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_nova_scheduler_t proc_t:file { read open getattr };"
+      - "allow kolla_nova_scheduler_t commplex_main_port_t:tcp_socket name_connect;"
+      - "allow kolla_nova_scheduler_t node_t:tcp_socket node_bind;"
+      - "allow kolla_nova_scheduler_t proc_t:file ioctl;"
+      - "allow kolla_nova_scheduler_t unreserved_port_t:tcp_socket name_connect;"
+
+  nova_compute:
+    enabled: "{{ enable_nova_compute | default(true) | bool }}"
+    description: "SELinux domain for nova_compute container"
+    groups:
+      - "compute"
+    domain: "kolla_nova_compute_t"
+    exec_type: "kolla_nova_compute_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type virt_var_lib_t;"
+      - "class capability { sys_admin net_admin dac_override };"
+      - "type proc_t;"
+      - "type unreserved_port_t;"
+      - "type container_file_t;"
+      - "class netlink_tcpdiag_socket { nlmsg_read };"
+      - "class file { read open getattr ioctl };"
+      - "class dir { read };"
+      - "class tcp_socket { name_connect create connect read write setopt getattr };"
+      - "class unix_dgram_socket { sendto };"
+      - "class unix_stream_socket { connectto };"
+      - "class sock_file { write };"
+      - "class process { fork transition siginh rlimitinh noatsecure };"
+      - "type fs_t;"
+      - "class fifo_file { read write getattr ioctl };"
+      - "class filesystem { getattr };"
+      - "class fd { use };"
+      - "class lnk_file { read };"
+      - "type kernel_t;"
+      - "type node_t;"
+      - "type amqp_port_t;"
+      # keystone
+      - "type commplex_main_port_t;"
+      # systemd
+      - "type systemd_logind_sessions_t;"
+      - "type systemd_userdbd_runtime_t;"
+      - "type systemd_userdbd_t;"
+      - "type system_dbusd_t;"
+      - "type devlog_t;"
+      # libvirt port 16509
+      - "type virt_port_t;"
+      - "type system_dbusd_var_run_t;"
+
+    allow_rules:
+      - "allow kolla_nova_compute_t self:capability { sys_admin net_admin dac_override };"
+      - "allow kolla_nova_compute_t proc_t:file { read open getattr ioctl };"
+      - "allow kolla_nova_compute_t self:netlink_tcpdiag_socket nlmsg_read;"
+      - "allow kolla_nova_compute_t unreserved_port_t:tcp_socket name_connect;"
+      - "allow kolla_nova_compute_t systemd_logind_sessions_t:dir read;"
+      - "allow kolla_nova_compute_t systemd_logind_sessions_t:file { read open getattr };"
+      - "allow kolla_nova_compute_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_nova_compute_t self:process { fork transition siginh rlimitinh noatsecure };"
+      - "allow kolla_nova_compute_t container_file_t:file { read open getattr execute };"
+      - "allow kolla_nova_compute_t container_file_t:lnk_file read;"
+      - "allow kolla_nova_compute_t container_file_t:dir { read search getattr };"
+      - "allow kolla_nova_compute_t fs_t:filesystem getattr;"
+      - "allow kolla_nova_compute_t self:fifo_file { read write getattr ioctl };"
+      - "allow kolla_nova_compute_t self:fd use;"
+      # Kernel socket communication (dbus/nsswitch resolution)
+      - "allow kolla_nova_compute_t kernel_t:unix_dgram_socket sendto;"
+      # D-Bus system bus access for systemd interaction
+      - "allow kolla_nova_compute_t system_dbusd_t:unix_stream_socket connectto;"
+      # systemd-userdbd user/group resolution socket
+      - "allow kolla_nova_compute_t systemd_userdbd_runtime_t:sock_file write;"
+      - "allow kolla_nova_compute_t systemd_userdbd_runtime_t:dir read;"
+      - "allow kolla_nova_compute_t systemd_userdbd_runtime_t:lnk_file read;"
+      - "allow kolla_nova_compute_t systemd_userdbd_t:unix_stream_socket connectto;"
+      # /dev/log socket for container syslog
+      - "allow kolla_nova_compute_t devlog_t:sock_file write;"
+      - "allow kolla_nova_compute_t devlog_t:lnk_file read;"
+      # Node-level socket binding for libvirt migration tunnels
+      - "allow kolla_nova_compute_t node_t:tcp_socket node_bind;"
+      # Keystone authentication endpoint (port 5000)
+      - "allow kolla_nova_compute_t commplex_main_port_t:tcp_socket name_connect;"
+      # Libvirt daemon connection (port 16509)
+      - "allow kolla_nova_compute_t virt_port_t:tcp_socket name_connect;"
+      - "allow kolla_nova_compute_t kernel_t:unix_stream_socket connectto;"
+      - "allow kolla_nova_compute_t system_dbusd_var_run_t:sock_file write;"
+
+  nova_libvirt:
+    _helpers:
+      - libvirt_version_check
+    enabled: "{{ enable_nova_compute | default(true) | bool }}"
+    description: "SELinux domain for nova_libvirt container"
+    groups:
+      - "compute"
+    domain: "kolla_nova_libvirt_t"
+    exec_type: "kolla_nova_libvirt_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type virt_image_t;"
+      - "type proc_t;"
+      - "type var_run_t;"
+      - "type container_t;"
+      # - "type kolla_prometheus_libvirt_exporter_t;"
+      - "class capability { sys_admin sys_ptrace mknod net_admin dac_override ipc_lock };"
+      - "class process { setrlimit };"
+      - "class file { read open getattr ioctl append lock write create unlink rename setattr };"
+      - "class dir { write remove_name add_name setattr read search getattr };"
+      - "class lnk_file { read };"
+      - "class tcp_socket { name_bind listen };"
+      - "class unix_stream_socket { connectto };"
+      - "class sock_file { write create unlink };"
+      - "class unix_dgram_socket { sendto };"
+      - "type kernel_t;"
+      - "type node_t;"
+      - "type systemd_userdbd_runtime_t;"
+      - "type systemd_userdbd_t;"
+      - "type system_dbusd_t;"
+      - "type system_dbusd_var_run_t;"
+      - "type syslogd_var_run_t;"
+      - "type devlog_t;"
+      - "type mtrr_device_t;"
+      - "type virt_port_t;"
+      - "type virt_var_run_t;"
+      # - "type kolla_ceilometer_compute_t;"
+
+    allow_rules:
+      - "allow kolla_nova_libvirt_t self:capability { sys_admin sys_ptrace mknod net_admin dac_override ipc_lock };"
+      - "allow kolla_nova_libvirt_t self:process setrlimit;"
+      - "allow kolla_nova_libvirt_t proc_t:file { read open getattr ioctl };"
+      - "allow kolla_nova_libvirt_t var_run_t:file { read append open lock write create unlink rename setattr };"
+      - "allow kolla_nova_libvirt_t var_run_t:sock_file { write create unlink };"
+      # Read /proc/<pid>/stat of container_t processes for VM management
+      - "allow kolla_nova_libvirt_t container_t:file { read open getattr };"
+      # Read /proc/<pid>/stat of the libvirt exporter (own SELinux domain) for client identity verification
+      # Must use container_domains to avoid chicken vs egg
+      - "allow kolla_nova_libvirt_t container_domain:file { read open getattr };"
+      # Allow container_t processes such as libvirt-exporte to connect to the libvirt socket
+      - "allow container_t kolla_nova_libvirt_t:unix_stream_socket connectto;"
+      # var_run_t directory management (pid files, sockets)
+      - "allow kolla_nova_libvirt_t var_run_t:dir { write remove_name add_name setattr };"
+      # Kernel socket communication (dbus/nsswitch)
+      - "allow kolla_nova_libvirt_t kernel_t:unix_dgram_socket sendto;"
+      - "allow kolla_nova_libvirt_t kernel_t:unix_stream_socket connectto;"
+      # D-Bus system bus access
+      - "allow kolla_nova_libvirt_t system_dbusd_t:unix_stream_socket connectto;"
+      # systemd-userdbd user/group resolution
+      - "allow kolla_nova_libvirt_t systemd_userdbd_runtime_t:sock_file write;"
+      - "allow kolla_nova_libvirt_t systemd_userdbd_runtime_t:dir read;"
+      - "allow kolla_nova_libvirt_t systemd_userdbd_runtime_t:lnk_file read;"
+      - "allow kolla_nova_libvirt_t systemd_userdbd_t:unix_stream_socket connectto;"
+      # systemd D-Bus runtime socket
+      - "allow kolla_nova_libvirt_t system_dbusd_var_run_t:sock_file write;"
+      # Syslog and devlog sockets
+      - "allow kolla_nova_libvirt_t syslogd_var_run_t:sock_file write;"
+      - "allow kolla_nova_libvirt_t devlog_t:sock_file write;"
+      - "allow kolla_nova_libvirt_t devlog_t:lnk_file read;"
+      # Memory Type Range Register device (CPU feature detection for VMs)
+      - "allow kolla_nova_libvirt_t mtrr_device_t:file write;"
+      # Node-level socket binding for migration/VNC tunnels
+      - "allow kolla_nova_libvirt_t node_t:tcp_socket node_bind;"
+      # Incoming virsh/remote management connections on virt port
+      - "allow kolla_nova_libvirt_t virt_port_t:tcp_socket { name_bind listen };"
+      # - "allow kolla_nova_libvirt_t kolla_ceilometer_compute_t:file { open read };"
+      - "allow kolla_nova_libvirt_t container_domain:file { open read };"
+      - "allow kolla_nova_libvirt_t self:tcp_socket listen;"
+      - "allow kolla_nova_libvirt_t virt_var_run_t:dir { add_name read remove_name setattr write };"
+      - "allow kolla_nova_libvirt_t virt_var_run_t:file { append create lock open read rename unlink write };"
+      - "allow kolla_nova_libvirt_t virt_var_run_t:sock_file { create unlink write };"
+
+  # selinux_policies_nova_cell:
+  nova_conductor:
+    _helpers:
+      - nova_cell_bootstrap
+      - create_cell_nova
+      - nova_list_cells
+      - nova_cell_online_data_migrations
+    enabled: "{{ enable_nova | default(true) | bool }}"
+    description: "SELinux domain for the nova_conductor"
+    groups:
+      - "control"
+    domain: "kolla_nova_conductor_t"
+    exec_type: "kolla_nova_conductor_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type node_t;"
+      - "type proc_t;"
+      - "type mysqld_port_t;"
+      - "class tcp_socket { name_connect node_bind };"
+      - "class netlink_tcpdiag_socket { nlmsg_read };"
+      - "type amqp_port_t;"
+      - "type commplex_main_port_t;"
+      - "type unreserved_port_t;"
+      - "type unlabeled_t;"
+    allow_rules:
+      # Conductor primarily needs outbound connections to MariaDB and RabbitMQ
+      - "allow kolla_nova_conductor_t self:tcp_socket name_connect;"
+      - "allow kolla_nova_conductor_t node_t:tcp_socket node_bind;"
+      - "allow kolla_nova_conductor_t proc_t:file { read open getattr ioctl };"
+      - "allow kolla_nova_conductor_t mysqld_port_t:tcp_socket name_connect;"
+      - "allow kolla_nova_conductor_t self:netlink_tcpdiag_socket nlmsg_read;"
+      - "allow kolla_nova_conductor_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_nova_conductor_t commplex_main_port_t:tcp_socket name_connect;"
+      - "allow kolla_nova_conductor_t unreserved_port_t:tcp_socket name_connect;"
+      - "allow kolla_nova_conductor_t unlabeled_t:tcp_socket { getattr read write };"
+
+  nova_metadata:
+    enabled: "{{ enable_nova | default(true) | bool }}"
+    description: "SELinux domain for nova_metadata"
+    groups:
+      - "control"
+    domain: "kolla_nova_metadata_t"
+    exec_type: "kolla_nova_metadata_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type proc_t;"
+      - "type neutron_port_t;"
+      - "type commplex_main_port_t;"
+      - "type memcache_port_t;"
+      - "type mysqld_port_t;"
+      - "type amqp_port_t;"
+      - "type ephemeral_port_t;"
+      - "class tcp_socket { name_bind name_connect listen node_bind };"
+      - "class file { read open getattr ioctl };"
+      - "type node_t;"
+    allow_rules:
+      - "allow kolla_nova_metadata_t neutron_port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_nova_metadata_t commplex_main_port_t:tcp_socket name_connect;"
+      - "allow kolla_nova_metadata_t memcache_port_t:tcp_socket name_connect;"
+      - "allow kolla_nova_metadata_t mysqld_port_t:tcp_socket name_connect;"
+      - "allow kolla_nova_metadata_t amqp_port_t:tcp_socket name_connect;"
+      - "allow kolla_nova_metadata_t ephemeral_port_t:tcp_socket name_connect;"
+      - "allow kolla_nova_metadata_t proc_t:file { read open getattr };"
+      - "allow kolla_nova_metadata_t self:tcp_socket listen;"
+      - "allow kolla_nova_metadata_t node_t:tcp_socket node_bind;"
+      - "allow kolla_nova_metadata_t proc_t:file ioctl;"
+
+  nova_proxy:
+    enabled: "{{ enable_nova | default(true) | bool }}"
+    description: "SELinux domain for nova_proxy"
+    groups:
+      - "control"
+    domain: "kolla_nova_novnc_t"
+    exec_type: "kolla_nova_novnc_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type port_t;"
+      - "type proc_t;"
+      - "type geneve_port_t;"
+      - "class tcp_socket { name_bind name_connect listen node_bind };"
+      - "class file { read open getattr ioctl };"
+      - "type node_t;"
+    allow_rules:
+      - "allow kolla_nova_novnc_t port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_nova_novnc_t proc_t:file { read open getattr };"
+      - "allow kolla_nova_novnc_t geneve_port_t:tcp_socket name_connect;"
+      - "allow kolla_nova_novnc_t geneve_port_t:tcp_socket name_bind;"
+      - "allow kolla_nova_novnc_t self:tcp_socket listen;"
+      - "allow kolla_nova_novnc_t node_t:tcp_socket node_bind;"
+      - "allow kolla_nova_novnc_t proc_t:file ioctl;"
+    interfaces:
+      # The container_name is 'nova_novncproxy', so the auto-generated
+      # label would be kolla_nova_novncproxy_t.  Alias it to our actual
+      # domain kolla_nova_novnc_t.
+      - "typealias kolla_nova_novnc_t alias kolla_nova_novncproxy_t;"
+
+
+  nova_ssh:
+    enabled: "{{ enable_nova_ssh | default(true) | bool }}"
+    # nova_ssh primarily runs on the compute data plane, but we include
+    # control groups for converged node architectures.
+    groups:
+      - "compute"
+      - "control"
+    description: "SELinux domain for Nova SSH service (Instance migrations)"
+    domain: "kolla_nova_ssh_t"
+    exec_type: "kolla_nova_ssh_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type ssh_port_t;"
+      - "type port_t;"
+      - "class tcp_socket { name_bind name_connect };"
+      - "class process { setrlimit };"
+      # sshd requires strict POSIX capability access for user separation
+      - "class capability { chown dac_override fowner fsetid setgid setuid sys_chroot audit_write };"
+      - "type proc_t;"
+      - "class netlink_tcpdiag_socket { nlmsg_read };"
+      - "class file { read open getattr };"
+    allow_rules:
+      # Bind to the standard (or custom) SSH port for incoming migration tunnels
+      - "allow kolla_nova_ssh_t ssh_port_t:tcp_socket name_bind;"
+      - "allow kolla_nova_ssh_t port_t:tcp_socket name_connect;"
+      # Required for sshd's internal privilege separation and chroot jailing
+      - "allow kolla_nova_ssh_t self:capability { chown dac_override fowner fsetid setgid setuid sys_chroot audit_write };"
+      - "allow kolla_nova_ssh_t self:process setrlimit;"
+      - "allow kolla_nova_ssh_t self:netlink_tcpdiag_socket nlmsg_read;"
+      - "allow kolla_nova_ssh_t proc_t:file { read open getattr };"

@@ -1,0 +1,47 @@
+---
+kolla_selinux_policies_iscsi:
+  iscsid:
+    enabled: "{{ enable_iscsi | default(false) | bool }}"
+    groups:
+      - "compute"
+    description: "SELinux domain for iSCSI initiator daemon"
+    domain: "kolla_iscsid_t"
+    exec_type: "kolla_iscsid_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type proc_t;"
+      - "type device_t;"
+      - "type iscsi_port_t;"
+      - "class capability { sys_admin net_admin };"
+      - "class tcp_socket { name_connect };"
+      - "class file { read open getattr };"
+      - "class chr_file { read write open ioctl };"
+    allow_rules:
+      - "allow kolla_iscsid_t self:capability { sys_admin net_admin };"
+      - "allow kolla_iscsid_t iscsi_port_t:tcp_socket name_connect;"
+      - "allow kolla_iscsid_t proc_t:file { read open getattr };"
+      - "allow kolla_iscsid_t device_t:chr_file { read write open ioctl };"
+
+  tgtd:
+    enabled: "{{ enable_iscsi | default(false) | bool }}"
+    groups:
+      - "storage"
+    description: "SELinux domain for iSCSI target daemon (tgtd)"
+    domain: "kolla_tgtd_t"
+    exec_type: "kolla_tgtd_exec_t"
+    requires:
+      - "type container_runtime_t;"
+      - "type proc_t;"
+      - "type device_t;"
+      - "type iscsi_port_t;"
+      - "class capability { sys_admin net_admin };"
+      - "class tcp_socket { name_bind name_connect };"
+      - "class file { read write open getattr };"
+      - "class chr_file { read write open ioctl };"
+      - "class blk_file { read write open ioctl };"
+    allow_rules:
+      - "allow kolla_tgtd_t self:capability { sys_admin net_admin };"
+      - "allow kolla_tgtd_t iscsi_port_t:tcp_socket { name_bind name_connect };"
+      - "allow kolla_tgtd_t proc_t:file { read open getattr };"
+      - "allow kolla_tgtd_t device_t:chr_file { read write open ioctl };"
+      - "allow kolla_tgtd_t device_t:blk_file { read write open ioctl };"
